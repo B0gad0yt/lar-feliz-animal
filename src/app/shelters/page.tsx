@@ -45,7 +45,7 @@ export default function SheltersPage() {
     <div className="container mx-auto py-12 px-4">
       <header className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold font-headline">Nossos Abrigos Parceiros</h1>
-        <p className="text-lg text-muted-foreground mt-2">
+        <p className="text-lg text-muted-foreground mt-2 max-w-3xl mx-auto">
           Conheça as organizações incríveis que cuidam dos nossos anjinhos.
         </p>
       </header>
@@ -68,7 +68,7 @@ export default function SheltersPage() {
                 </div>
                 <div className="flex items-center text-sm">
                     <Mail className="h-4 w-4 mr-3 text-muted-foreground" />
-                    <a href={`mailto:${shelter.email}`} className="hover:underline text-primary">
+                    <a href={`mailto:${shelter.email}`} className="hover:underline text-primary break-all">
                     {shelter.email}
                     </a>
                 </div>
@@ -88,3 +88,5 @@ export default function SheltersPage() {
     </div>
   );
 }
+
+    

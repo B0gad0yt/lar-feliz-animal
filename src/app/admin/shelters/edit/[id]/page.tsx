@@ -54,7 +54,7 @@ export default function EditShelterPage({ params }: { params: { id: string } }) 
     }
   }, [shelter, form]);
 
-  const onSubmit = async (values: z.infer<typeof shelterSchema>) => {
+  const onSubmit = (values: z.infer<typeof shelterSchema>) => {
     if (!firestore || !shelterRef) return;
     
     setDoc(shelterRef, {
@@ -136,3 +136,5 @@ export default function EditShelterPage({ params }: { params: { id: string } }) 
     </div>
   );
 }
+
+    

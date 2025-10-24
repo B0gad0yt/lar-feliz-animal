@@ -75,7 +75,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     }
   }, [animal, form]);
 
-  const onSubmit = async (values: z.infer<typeof animalSchema>) => {
+  const onSubmit = (values: z.infer<typeof animalSchema>) => {
     if (!firestore || !animalRef) return;
     
     setDoc(animalRef, {
@@ -202,7 +202,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                             </div>
                         ))}
                      </div>
-                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendHealth('')}>Adicionar Status</Button>
+                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendHealth({ value: '' })}>Adicionar Status</Button>
                 </div>
                 
                 <div>
@@ -218,7 +218,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                             </div>
                         ))}
                      </div>
-                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendPhoto('')}>Adicionar Foto</Button>
+                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendPhoto({ value: '' })}>Adicionar Foto</Button>
                 </div>
                 
                 <FormField control={form.control} name="shelterId" render={({ field }) => (
@@ -236,3 +236,5 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+    

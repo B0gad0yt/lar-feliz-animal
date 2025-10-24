@@ -9,7 +9,7 @@ const PillarCard = ({ icon, title, description }: { icon: React.ReactNode, title
       <div className="mx-auto bg-primary/20 text-primary p-4 rounded-full w-fit">
         {icon}
       </div>
-      <CardTitle className="font-headline pt-4">{title}</CardTitle>
+      <CardTitle className="font-headline pt-4 text-xl md:text-2xl">{title}</CardTitle>
     </CardHeader>
     <CardContent>
       <p className="text-muted-foreground">{description}</p>
@@ -68,17 +68,17 @@ export default function EducationPage() {
             <h2 className="text-3xl font-bold font-headline text-center mb-12">Pilares da Posse Responsável</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <PillarCard 
-                  icon={<Home className="h-10 w-10"/>}
+                  icon={<Home className="h-8 w-8 md:h-10 md:w-10"/>}
                   title="Ambiente Seguro"
                   description="Prover um lar protegido do clima, perigos e estresse, com espaço adequado para o animal."
                 />
                  <PillarCard 
-                  icon={<ShieldCheck className="h-10 w-10"/>}
+                  icon={<ShieldCheck className="h-8 w-8 md:h-10 md:w-10"/>}
                   title="Saúde e Cuidados"
                   description="Garantir vacinação em dia, alimentação de qualidade, higiene e visitas regulares ao veterinário."
                 />
                  <PillarCard 
-                  icon={<CalendarDays className="h-10 w-10"/>}
+                  icon={<CalendarDays className="h-8 w-8 md:h-10 md:w-10"/>}
                   title="Compromisso a Longo Prazo"
                   description="Entender que um animal é um companheiro por muitos anos, incluindo planejamento para o futuro."
                 />
@@ -89,3 +89,5 @@ export default function EducationPage() {
     </div>
   );
 }
+
+    

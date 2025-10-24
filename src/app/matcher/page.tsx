@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Animal } from '@/lib/types';
@@ -57,16 +57,16 @@ export default function MatcherPage() {
     <div className="container mx-auto py-12 px-4">
       <header className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold font-headline flex items-center justify-center">
-            <Sparkles className="w-10 h-10 mr-4 text-primary" />
+            <Sparkles className="w-8 h-8 md:w-10 md:h-10 mr-4 text-primary" />
             Encontre seu Match Perfeito
-            <Sparkles className="w-10 h-10 ml-4 text-primary" />
+            <Sparkles className="w-8 h-8 md:w-10 md:h-10 ml-4 text-primary" />
         </h1>
         <p className="text-lg text-muted-foreground mt-2 max-w-2xl mx-auto">
           Selecione as características de personalidade que você busca em um amigo.
         </p>
       </header>
 
-      <div className="grid lg:grid-cols-5 gap-12">
+      <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">
         <div className="lg:col-span-2">
           <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg sticky top-24 transition-all duration-300">
             <CardHeader>
@@ -112,3 +112,5 @@ export default function MatcherPage() {
     </div>
   );
 }
+
+    

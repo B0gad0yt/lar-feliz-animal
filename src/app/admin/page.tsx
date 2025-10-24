@@ -3,7 +3,7 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useCollection, useDoc } from '@/firebase';
-import { collection, doc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -86,64 +86,66 @@ function AnimalsTab() {
             </Button>
         </CardHeader>
         <CardContent>
-           <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="hidden w-[100px] sm:table-cell">
-                            <span className="sr-only">Imagem</span>
-                        </TableHead>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Espécie</TableHead>
-                        <TableHead className="hidden md:table-cell">Idade</TableHead>
-                        <TableHead className="hidden md:table-cell">Status</TableHead>
-                        <TableHead>
-                            <span className="sr-only">Ações</span>
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {animals && animals.map((animal) => {
-                        const image = PlaceHolderImages.find(p => p.id === animal.photos[0]);
-                        return (
-                            <TableRow key={animal.id}>
-                                <TableCell className="hidden sm:table-cell">
-                                    {image && <Image
-                                    alt={animal.name}
-                                    className="aspect-square rounded-md object-cover"
-                                    height="64"
-                                    src={image.imageUrl}
-                                    width="64"
-                                    />}
-                                </TableCell>
-                                <TableCell className="font-medium">{animal.name}</TableCell>
-                                <TableCell>{animal.species}</TableCell>
-                                <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
-                                <TableCell className="hidden md:table-cell">
-                                    <Badge variant="outline">Disponível</Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                            <span className="sr-only">Toggle menu</span>
-                                        </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
-                                                <Edit className="mr-2 h-4 w-4" />Editar
-                                            </Link></DropdownMenuItem>
-                                            <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={() => setItemToDelete(animal.id as string)}>
-                                                <Trash className="mr-2 h-4 w-4" />Excluir
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table>
+           <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="hidden w-[100px] sm:table-cell">
+                                <span className="sr-only">Imagem</span>
+                            </TableHead>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Espécie</TableHead>
+                            <TableHead className="hidden md:table-cell">Idade</TableHead>
+                            <TableHead className="hidden md:table-cell">Status</TableHead>
+                            <TableHead>
+                                <span className="sr-only">Ações</span>
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {animals && animals.map((animal) => {
+                            const image = PlaceHolderImages.find(p => p.id === animal.photos[0]);
+                            return (
+                                <TableRow key={animal.id}>
+                                    <TableCell className="hidden sm:table-cell">
+                                        {image && <Image
+                                        alt={animal.name}
+                                        className="aspect-square rounded-md object-cover"
+                                        height="64"
+                                        src={image.imageUrl}
+                                        width="64"
+                                        />}
+                                    </TableCell>
+                                    <TableCell className="font-medium">{animal.name}</TableCell>
+                                    <TableCell>{animal.species}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        <Badge variant="outline">Disponível</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                                <span className="sr-only">Toggle menu</span>
+                                            </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
+                                                    <Edit className="mr-2 h-4 w-4" />Editar
+                                                </Link></DropdownMenuItem>
+                                                <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={() => setItemToDelete(animal.id as string)}>
+                                                    <Trash className="mr-2 h-4 w-4" />Excluir
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+           </div>
         </CardContent>
         <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
              <AlertDialogContent>
@@ -208,45 +210,47 @@ function SheltersTab() {
             </Button>
         </CardHeader>
         <CardContent>
-           <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead className="hidden md:table-cell">Telefone</TableHead>
-                        <TableHead>
-                            <span className="sr-only">Ações</span>
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {shelters && shelters.map((shelter) => (
-                        <TableRow key={shelter.id}>
-                            <TableCell className="font-medium">{shelter.name}</TableCell>
-                            <TableCell>{shelter.email}</TableCell>
-                            <TableCell className="hidden md:table-cell">{shelter.phone}</TableCell>
-                            <TableCell>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                        <span className="sr-only">Toggle menu</span>
-                                    </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem asChild><Link href={`/admin/shelters/edit/${shelter.id}`} className="cursor-pointer">
-                                            <Edit className="mr-2 h-4 w-4" />Editar
-                                        </Link></DropdownMenuItem>
-                                        <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={() => setItemToDelete(shelter.id as string)}>
-                                            <Trash className="mr-2 h-4 w-4" />Excluir
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TableCell>
+           <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="hidden md:table-cell">Telefone</TableHead>
+                            <TableHead>
+                                <span className="sr-only">Ações</span>
+                            </TableHead>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {shelters && shelters.map((shelter) => (
+                            <TableRow key={shelter.id}>
+                                <TableCell className="font-medium">{shelter.name}</TableCell>
+                                <TableCell>{shelter.email}</TableCell>
+                                <TableCell className="hidden md:table-cell">{shelter.phone}</TableCell>
+                                <TableCell>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">Toggle menu</span>
+                                        </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem asChild><Link href={`/admin/shelters/edit/${shelter.id}`} className="cursor-pointer">
+                                                <Edit className="mr-2 h-4 w-4" />Editar
+                                            </Link></DropdownMenuItem>
+                                            <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={() => setItemToDelete(shelter.id as string)}>
+                                                <Trash className="mr-2 h-4 w-4" />Excluir
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
         </CardContent>
         <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
              <AlertDialogContent>
@@ -354,12 +358,12 @@ function SettingsTab() {
                   <FormDescription>Adicione ou remova os links que aparecem no rodapé.</FormDescription>
                   <div className="space-y-4 mt-2">
                     {fields.map((field, index) => (
-                      <div key={field.id} className="flex items-center gap-4 p-4 border rounded-md">
+                      <div key={field.id} className="flex items-center gap-2 md:gap-4 p-4 border rounded-md flex-wrap md:flex-nowrap">
                         <FormField
                           control={form.control}
                           name={`socialLinks.${index}.platform`}
                           render={({ field }) => (
-                            <FormItem className="w-1/3">
+                            <FormItem className="w-full md:w-1/3">
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                 <SelectContent>
@@ -379,7 +383,7 @@ function SettingsTab() {
                           control={form.control}
                           name={`socialLinks.${index}.url`}
                           render={({ field }) => (
-                             <FormItem className="flex-grow"><FormControl><Input placeholder="https://..." {...field} /></FormControl></FormItem>
+                             <FormItem className="flex-grow w-full md:w-auto"><FormControl><Input placeholder="https://..." {...field} /></FormControl></FormItem>
                           )}
                         />
                         <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
@@ -416,27 +420,23 @@ export default function AdminPage() {
   const [authStatus, setAuthStatus] = useState<'verifying' | 'authorized' | 'unauthorized'>('verifying');
 
   useEffect(() => {
-    // Wait until both user and appUser loading states are resolved
     if (userLoading || appUserLoading) {
       setAuthStatus('verifying');
       return;
     }
 
-    // If there is no authenticated user at all
     if (!user) {
       setAuthStatus('unauthorized');
-      router.push('/login'); // Redirect to login if not authenticated
+      router.push('/login'); 
       return;
     }
     
-    // If authenticated user exists, but doesn't have an app user profile or is not an admin
     if (!appUser || appUser.role !== 'admin') {
       setAuthStatus('unauthorized');
       return;
     }
 
-    // If everything checks out
-    if (appUser.role === 'admin') {
+    if (user && appUser && appUser.role === 'admin') {
       setAuthStatus('authorized');
     }
   }, [user, userLoading, appUser, appUserLoading, router]);
@@ -477,12 +477,12 @@ export default function AdminPage() {
   return (
     <div className="container mx-auto py-12 px-4">
        <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold font-headline">Painel de Administração</h1>
+        <h1 className="text-3xl md:text-4xl font-bold font-headline">Painel de Administração</h1>
       </div>
-      <Tabs defaultValue="animals">
+      <Tabs defaultValue="animals" className="w-full">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <aside className="md:col-span-1">
-             <TabsList className="flex flex-col h-auto items-stretch bg-transparent p-0">
+             <TabsList className="flex flex-col h-auto items-stretch bg-transparent p-0 w-full md:w-auto">
                 <TabsTrigger value="animals" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
                   <Bone className="mr-2 h-5 w-5" />
                   Animais
@@ -514,3 +514,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

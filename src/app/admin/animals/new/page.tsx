@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -18,8 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Trash, ArrowLeft, Shield } from 'lucide-react';
-import Link from 'next/link';
+import { Save, Trash, ArrowLeft } from 'lucide-react';
 
 const animalSchema = z.object({
   name: z.string().min(2, 'Nome é obrigatório.'),
@@ -61,7 +60,7 @@ export default function NewAnimalPage() {
   const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({ control: form.control, name: "health" });
   const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({ control: form.control, name: "photos" });
 
-  const onSubmit = async (values: z.infer<typeof animalSchema>) => {
+  const onSubmit = (values: z.infer<typeof animalSchema>) => {
     if (!firestore) return;
     const collectionRef = collection(firestore, 'animals');
     
@@ -221,3 +220,5 @@ export default function NewAnimalPage() {
     </div>
   );
 }
+
+    

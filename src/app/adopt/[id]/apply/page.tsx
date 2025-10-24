@@ -45,6 +45,12 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const form = useForm<z.infer<typeof applicationSchema>>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
+      fullName: '',
+      email: '',
+      phone: '',
+      address: '',
+      hasOtherPets: '',
+      reason: '',
       agreement: false,
     },
   });
@@ -251,3 +257,5 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     </div>
   );
 }
+
+    

@@ -105,17 +105,17 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
           </Card>
           
           <div>
-            <h2 className="text-2xl font-headline font-semibold mb-2">Sobre {animal.name}</h2>
+            <h2 className="text-xl md:text-2xl font-headline font-semibold mb-2">Sobre {animal.name}</h2>
             <p className="text-foreground/80">{animal.description}</p>
           </div>
 
           <div>
-             <h2 className="text-2xl font-headline font-semibold mb-2">Nossa História</h2>
+             <h2 className="text-xl md:text-2xl font-headline font-semibold mb-2">Nossa História</h2>
              <p className="text-foreground/80">{animal.story}</p>
           </div>
 
           <div>
-            <h2 className="text-2xl font-headline font-semibold mb-3">Personalidade</h2>
+            <h2 className="text-xl md:text-2xl font-headline font-semibold mb-3">Personalidade</h2>
             <div className="flex flex-wrap gap-2">
               {animal.personality.map((trait) => (
                 <Badge key={trait} variant="outline" className="text-base px-3 py-1 bg-accent/30 border-accent">{trait}</Badge>
@@ -124,7 +124,7 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
           </div>
           
           <div>
-             <h2 className="text-2xl font-headline font-semibold mb-3 flex items-center"><Stethoscope className="mr-2 h-6 w-6"/>Saúde</h2>
+             <h2 className="text-xl md:text-2xl font-headline font-semibold mb-3 flex items-center"><Stethoscope className="mr-2 h-6 w-6"/>Saúde</h2>
              <div className="flex flex-wrap gap-2">
                 {animal.health.map((item) => (
                   <Badge key={item} variant="secondary" className="text-base">{item}</Badge>
@@ -142,3 +142,5 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
     </div>
   );
 }
+
+    
