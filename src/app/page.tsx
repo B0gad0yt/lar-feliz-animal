@@ -41,7 +41,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="w-full max-w-6xl mx-auto py-16 px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card className="text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader>
               <div className="mx-auto bg-primary/20 text-primary p-4 rounded-full w-fit">
                 <PawPrint className="h-8 w-8" />
@@ -59,7 +59,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader>
               <div className="mx-auto bg-primary/20 text-primary p-4 rounded-full w-fit">
                 <Heart className="h-8 w-8" />
@@ -77,7 +77,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader>
               <div className="mx-auto bg-primary/20 text-primary p-4 rounded-full w-fit">
                 <BookOpen className="h-8 w-8" />

@@ -4,7 +4,7 @@ import { Logo } from '@/components/icons/logo';
 
 export function Footer() {
   return (
-    <footer className="w-full border-t bg-background/95">
+    <footer className="w-full border-t bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto py-8 px-4 flex flex-col md:flex-row justify-between items-center">
         <div className="flex items-center space-x-2 mb-4 md:mb-0">
           <Logo className="h-8 w-8 text-primary" />

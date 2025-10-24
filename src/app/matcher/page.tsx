@@ -57,13 +57,9 @@ export default function MatcherPage() {
 
     try {
       const result = await suggestAnimalMatches({ lifestyle, preferences, animalProfiles });
-      const matchedAnimals = result.matches
-        .map(matchString => {
-            const idMatch = matchString.match(/ID: (animal-\d+)/);
-            if (!idMatch) return null;
-            return animals.find(a => a.id === idMatch[1]);
-        })
-        .filter((a): a is Animal => a !== null);
+      const matchedAnimals = result.matchIds
+        .map(id => animals.find(a => a.id === id))
+        .filter((a): a is Animal => a !== undefined && a !== null);
       
       setMatches(matchedAnimals);
     } catch (e) {
@@ -88,7 +84,7 @@ export default function MatcherPage() {
 
       <div className="grid lg:grid-cols-5 gap-12">
         <div className="lg:col-span-2">
-          <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg sticky top-24">
+          <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg sticky top-24 transition-all duration-300">
             <CardHeader>
               <CardTitle className="font-headline text-2xl">Conte-nos sobre você</CardTitle>
             </CardHeader>
@@ -195,12 +191,21 @@ export default function MatcherPage() {
                     ))}
                 </div>
             )}
-            {!isLoading && matches.length === 0 && (
-                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg min-h-[30rem]">
+            {!isLoading && !error && matches.length === 0 && (
+                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg min-h-[30rem] transition-all duration-300">
                     <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold">Preencha o formulário ao lado</h3>
                     <p className="text-muted-foreground mt-2">
                         Seus matches perfeitos aparecerão aqui!
+                    </p>
+                </Card>
+            )}
+             {!isLoading && error && (
+                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-destructive/10 text-destructive-foreground backdrop-blur-sm shadow-lg min-h-[30rem] transition-all duration-300">
+                    <PawPrint className="h-16 w-16 mb-4" />
+                    <h3 className="text-xl font-semibold">Ocorreu um erro</h3>
+                    <p className="mt-2">
+                        {error}
                     </p>
                 </Card>
             )}

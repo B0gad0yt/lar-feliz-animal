@@ -14,12 +14,12 @@ import {z} from 'genkit';
 const SuggestAnimalMatchesInputSchema = z.object({
   lifestyle: z.string().describe('Description of the user lifestyle, including activity level, living situation, and family.'),
   preferences: z.string().describe('User preferences for an animal, including species, breed, age, size, and temperament.'),
-  animalProfiles: z.string().array().describe('Array of animal profiles, including descriptions and traits.'),
+  animalProfiles: z.string().array().describe('Array of animal profiles, including descriptions and traits in the format "ID: [id], ...".'),
 });
 export type SuggestAnimalMatchesInput = z.infer<typeof SuggestAnimalMatchesInputSchema>;
 
 const SuggestAnimalMatchesOutputSchema = z.object({
-  matches: z.string().array().describe('An array of suggested animal profiles that match the user lifestyle and preferences.'),
+  matchIds: z.string().array().describe('An array of IDs for the suggested animal profiles that best match the user lifestyle and preferences. The IDs should be extracted from the animal profiles.'),
 });
 export type SuggestAnimalMatchesOutput = z.infer<typeof SuggestAnimalMatchesOutputSchema>;
 
@@ -43,7 +43,7 @@ const prompt = ai.definePrompt({
   {{/each}}
 
   Based on this information, suggest the best animal matches from the provided profiles.
-  Return an array of the animal profiles that best fit the user.
+  Return an array of the animal IDs that best fit the user.
   `,
 });
 
