@@ -2,12 +2,12 @@
 
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useCollection } from '@/firebase';
+import { useCollection, useDoc } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Animal } from '@/lib/types';
+import type { Animal, User as AppUser } from '@/lib/types';
 
 
 function AdminDashboard() {
@@ -135,18 +135,36 @@ function AdminDashboard() {
 export default function AdminPage() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
 
-  if (userLoading) {
-    return <div className="container mx-auto text-center py-12">Carregando...</div>;
-  }
+  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
+  const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
 
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, userLoading, router]);
+
+  useEffect(() => {
+    if (appUser) {
+      if (appUser.role === 'admin') {
+        setIsAuthorized(true);
+      } else {
+        // Not an admin, redirect to home page
+        router.push('/');
+      }
+    } else if (!appUserLoading && user) {
+      // User is logged in but doesn't have an appUser doc or role is not admin
+      router.push('/');
+    }
+  }, [appUser, appUserLoading, user, router]);
   
-  // A verificação de admin será feita pelas regras do Firestore.
-  // Se o usuário não for admin, as operações de escrita falharão e o error-emitter cuidará de notificar.
+  if (userLoading || appUserLoading || !isAuthorized) {
+    return <div className="container mx-auto text-center py-12">Verificando autorização...</div>;
+  }
 
   return (
     <div className="container mx-auto py-12 px-4">
