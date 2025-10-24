@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-dog-1",
+      "description": "A happy golden retriever sitting in a field of flowers.",
+      "imageUrl": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxoYXBweSUyMGRvZ3xlbnwwfHx8fDE3NjEzMTYxMjl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "happy dog"
+    },
+    {
+      "id": "dog-1",
+      "description": "A small, fluffy white dog looking at the camera.",
+      "imageUrl": "https://images.unsplash.com/photo-1534361960057-19889db9621e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzbWFsbCUyMGRvZ3xlbnwwfHx8fDE3NjEyNjQ2MTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "small dog"
+    },
+    {
+      "id": "dog-2",
+      "description": "A playful german shepherd puppy.",
+      "imageUrl": "https://images.unsplash.com/photo-1533930602315-a783e6a5447c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cHVwcHklMjBkb2d8ZW58MHx8fHwxNzYxMjgzMjgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "puppy dog"
+    },
+    {
+      "id": "dog-3",
+      "description": "An old, wise-looking bulldog with glasses.",
+      "imageUrl": "https://images.unsplash.com/photo-1608335890650-e6d0a2a691b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxvbGQlMjBkb2d8ZW58MHx8fHwxNzYxMzI5NzU0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "old dog"
+    },
+    {
+      "id": "dog-4",
+      "description": "A medium-sized mixed breed dog with a happy expression.",
+      "imageUrl": "https://images.unsplash.com/photo-1592782431884-2024cda5aae8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtaXhlZCUyMGRvZ3xlbnwwfHx8fDE3NjEzMjk3NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mixed dog"
+    },
+    {
+      "id": "cat-1",
+      "description": "A sleek siamese cat with blue eyes.",
+      "imageUrl": "https://images.unsplash.com/photo-1568309386325-ef86f13ac533?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzaWFtZXNlJTIwY2F0fGVufDB8fHx8MTc2MTMxMDU0NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "siamese cat"
+    },
+    {
+      "id": "cat-2",
+      "description": "A fluffy ginger kitten playing with a toy.",
+      "imageUrl": "https://images.unsplash.com/photo-1622069838667-18ab9de07e58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxnaW5nZXIlMjBraXR0ZW58ZW58MHx8fHwxNzYxMzI5NzU0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ginger kitten"
+    },
+    {
+      "id": "cat-3",
+      "description": "An elegant black cat lounging on a sofa.",
+      "imageUrl": "https://images.unsplash.com/photo-1604916287784-c324202b3205?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxibGFjayUyMGNhdHxlbnwwfHx8fDE3NjEzMjk3NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black cat"
+    },
+    {
+      "id": "cat-4",
+      "description": "A tabby cat looking curiously at the camera.",
+      "imageUrl": "https://images.unsplash.com/photo-1645437136523-dd412d06a79f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx0YWJieSUyMGNhdHxlbnwwfHx8fDE3NjEyNzgyODN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tabby cat"
+    },
+    {
+      "id": "rabbit-1",
+      "description": "A white rabbit with floppy ears eating a carrot.",
+      "imageUrl": "https://images.unsplash.com/photo-1628852303716-6e27f03aa533?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx3aGl0ZSUyMHJhYmJpdHxlbnwwfHx8fDE3NjEzMjk3NTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white rabbit"
+    },
+    {
+      "id": "education-hero",
+      "description": "A person gently holding a small kitten.",
+      "imageUrl": "https://images.unsplash.com/photo-1731201947209-03e5e4aa4e76?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBraXR0ZW58ZW58MHx8fHwxNzYxMzI5NzU0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person kitten"
+    },
+    {
+      "id": "matcher-hero",
+      "description": "A collage of different happy pets.",
+      "imageUrl": "https://images.unsplash.com/photo-1704885043964-46697e1e0424?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8aGFwcHklMjBwZXRzfGVufDB8fHx8MTc2MTMyOTc1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "happy pets"
+    }
+  ]
 }

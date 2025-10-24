@@ -1,0 +1,208 @@
+'use client';
+
+import { notFound, useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { animals } from '@/lib/data';
+
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { Heart } from 'lucide-react';
+
+const applicationSchema = z.object({
+  fullName: z.string().min(3, 'Nome completo é obrigatório.'),
+  email: z.string().email('Email inválido.'),
+  phone: z.string().min(10, 'Telefone inválido.'),
+  address: z.string().min(5, 'Endereço é obrigatório.'),
+  residenceType: z.enum(['Casa', 'Apartamento'], { required_error: 'Selecione o tipo de residência.' }),
+  hasOtherPets: z.string().min(1, 'Informe se possui outros animais.'),
+  reason: z.string().min(20, 'Conte-nos um pouco mais sobre porque quer adotar.'),
+  agreement: z.boolean().refine((val) => val === true, {
+    message: 'Você deve concordar com os termos.',
+  }),
+});
+
+export default function AdoptionApplicationPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const animal = animals.find((a) => a.id === params.id);
+
+  const form = useForm<z.infer<typeof applicationSchema>>({
+    resolver: zodResolver(applicationSchema),
+    defaultValues: {
+      agreement: false,
+    },
+  });
+
+  if (!animal) {
+    notFound();
+  }
+
+  function onSubmit(values: z.infer<typeof applicationSchema>) {
+    console.log(values);
+    toast({
+      title: 'Formulário enviado com sucesso!',
+      description: `O abrigo entrará em contato em breve sobre a adoção de ${animal?.name}.`,
+    });
+    router.push(`/adopt/${animal?.id}`);
+  }
+
+  return (
+    <div className="container mx-auto max-w-3xl py-12 px-4">
+      <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl md:text-4xl font-headline">Formulário de Adoção</CardTitle>
+          <CardDescription className="text-lg">
+            Você está a um passo de mudar a vida de <span className="font-bold text-primary">{animal.name}</span>!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <h3 className="text-xl font-headline font-semibold">Suas Informações</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Completo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Seu nome" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="seu@email.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(00) 99999-9999" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Sua rua, número e bairro" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <h3 className="text-xl font-headline font-semibold pt-4">Sobre seu Lar</h3>
+               <FormField
+                  control={form.control}
+                  name="residenceType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Tipo de residência</FormLabel>
+                      <FormControl>
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="Casa" />
+                            </FormControl>
+                            <FormLabel className="font-normal">Casa</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="Apartamento" />
+                            </FormControl>
+                            <FormLabel className="font-normal">Apartamento</FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="hasOtherPets"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Possui outros animais?</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Sim, um cachorro. / Não." {...field} />
+                      </FormControl>
+                      <FormDescription>Se sim, quais?</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="reason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Por que você gostaria de adotar {animal.name}?</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Conte-nos sobre sua motivação, seu estilo de vida e como será a rotina do animal." className="min-h-[120px]" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="agreement"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mt-8">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Termo de Compromisso</FormLabel>
+                        <FormDescription>
+                          Entendo que a adoção é um ato de responsabilidade e me comprometo a fornecer um ambiente seguro, amoroso e com todos os cuidados necessários para o bem-estar do animal.
+                        </FormDescription>
+                         <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+              <Button type="submit" size="lg" className="w-full">
+                <Heart className="mr-2 h-5 w-5" /> Enviar Pedido de Adoção
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
