@@ -142,22 +142,29 @@ export default function AdminPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
+    // Se o carregamento do usuário de autenticação terminou e não há usuário, redirecione para o login.
     if (!userLoading && !user) {
       router.push('/login');
+      return;
     }
-  }, [user, userLoading, router]);
 
-  useEffect(() => {
-    if (appUser) {
-      if (appUser.role === 'admin') {
-        setIsAuthorized(true);
-      } else {
-        router.push('/');
-      }
-    } else if (!appUserLoading && user) {
-         router.push('/');
+    // Se o carregamento do usuário do Firestore terminou...
+    if (!appUserLoading && user) {
+        // Se o usuário do app existe...
+        if (appUser) {
+            // Se ele é admin, autorize.
+            if (appUser.role === 'admin') {
+                setIsAuthorized(true);
+            } else {
+                // Se não é admin, redirecione para o início.
+                router.push('/');
+            }
+        } else {
+            // Se o usuário do app não existe no Firestore, ele não é admin, redirecione.
+            router.push('/');
+        }
     }
-  }, [appUser, appUserLoading, user, router]);
+  }, [user, userLoading, appUser, appUserLoading, router]);
   
   if (userLoading || appUserLoading || !isAuthorized) {
     return <div className="container mx-auto text-center py-12">Verificando autorização...</div>;
