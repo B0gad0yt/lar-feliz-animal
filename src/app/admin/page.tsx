@@ -11,12 +11,12 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Animal, User as AppUser } from '@/lib/types';
@@ -139,39 +139,59 @@ export default function AdminPage() {
   const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
 
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(true);
+  const [authStatus, setAuthStatus] = useState<'verifying' | 'authorized' | 'unauthorized'>('verifying');
 
   useEffect(() => {
-    // Só tomar uma decisão quando ambos os carregamentos terminarem.
+    // Não faça nada até que ambos os hooks de dados terminem de carregar.
     if (userLoading || appUserLoading) {
+      setAuthStatus('verifying');
       return;
     }
 
-    // Se o carregamento terminou, paramos de verificar.
-    setIsVerifying(false);
-
-    // Se não há usuário autenticado, redireciona para login.
-    if (!user) {
-      router.push('/login');
+    // Se não houver usuário logado ou se o perfil do usuário não existir no Firestore
+    // ou se o papel do usuário não for 'admin', o acesso é negado.
+    if (!user || !appUser || appUser.role !== 'admin') {
+      setAuthStatus('unauthorized');
       return;
     }
 
-    // Se o usuário está autenticado, mas seu perfil não existe ou não é admin, redireciona para a home.
-    if (!appUser || appUser.role !== 'admin') {
-      router.push('/');
-      return;
-    }
+    // Se todas as verificações passarem, o usuário é um administrador autorizado.
+    setAuthStatus('authorized');
 
-    // Se passou por todas as verificações, o usuário é um admin autorizado.
-    setIsAuthorized(true);
-
-  }, [user, userLoading, appUser, appUserLoading, router]);
+  }, [user, userLoading, appUser, appUserLoading]);
   
-  if (isVerifying || !isAuthorized) {
+  if (authStatus === 'verifying') {
     return <div className="container mx-auto text-center py-12">Verificando autorização...</div>;
   }
+  
+  if (authStatus === 'unauthorized') {
+      return (
+          <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+              <Card className="max-w-md w-full text-center">
+                  <CardHeader>
+                      <CardTitle className="text-2xl font-headline flex items-center justify-center">
+                          <ShieldAlert className="mr-2 h-7 w-7 text-destructive" />
+                          Acesso Negado
+                      </CardTitle>
+                      <CardDescription>
+                          Você não tem permissão para acessar esta página.
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <p>Esta área é restrita a administradores do site. Se você acredita que isso é um erro, entre em contato com o suporte.</p>
+                  </CardContent>
+                  <CardFooter>
+                      <Button className="w-full" onClick={() => router.push('/')}>
+                          <ArrowLeft className="mr-2 h-5 w-5" />
+                          Voltar para a Página Inicial
+                      </Button>
+                  </CardFooter>
+              </Card>
+          </div>
+      );
+  }
 
+  // Apenas renderiza o painel se autorizado
   return (
     <div className="container mx-auto py-12 px-4">
        <div className="flex justify-between items-center mb-8">
