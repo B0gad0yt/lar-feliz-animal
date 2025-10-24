@@ -5,9 +5,9 @@ import { useCollection, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Animal } from '@/lib/types';
 import { AnimalCard } from '@/components/animal-card';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent as SelectContentComponent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { SlidersHorizontal, PawPrint } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,12 +90,12 @@ export default function AdoptPage() {
                   <SelectTrigger id="species">
                     <SelectValue placeholder="Espécie" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContentComponent>
                     <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="Cachorro">Cachorro</SelectItem>
                     <SelectItem value="Gato">Gato</SelectItem>
                     <SelectItem value="Coelho">Coelho</SelectItem>
-                  </SelectContent>
+                  </SelectContentComponent>
                 </Select>
               </div>
               <div>
@@ -104,12 +104,12 @@ export default function AdoptPage() {
                   <SelectTrigger id="size">
                     <SelectValue placeholder="Tamanho" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContentComponent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Pequeno">Pequeno</SelectItem>
                     <SelectItem value="Médio">Médio</SelectItem>
                     <SelectItem value="Grande">Grande</SelectItem>
-                  </SelectContent>
+                  </SelectContentComponent>
                 </Select>
               </div>
               <div>
@@ -118,11 +118,11 @@ export default function AdoptPage() {
                   <SelectTrigger id="gender">
                     <SelectValue placeholder="Sexo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContentComponent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Macho">Macho</SelectItem>
                     <SelectItem value="Fêmea">Fêmea</SelectItem>
-                  </SelectContent>
+                  </SelectContentComponent>
                 </Select>
               </div>
             </div>
