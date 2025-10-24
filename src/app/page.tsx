@@ -64,11 +64,11 @@ export default function Home() {
               <div className="mx-auto bg-primary/20 text-primary p-4 rounded-full w-fit">
                 <Heart className="h-8 w-8" />
               </div>
-              <CardTitle className="font-headline pt-4">Match Inteligente</CardTitle>
+              <CardTitle className="font-headline pt-4">Filtro Inteligente</CardTitle>
             </CardHeader>
             <CardContent>
               <p>
-                Nossa ferramenta de IA sugere os pets que mais combinam com seu
+                Use nossos filtros para encontrar os pets que mais combinam com seu
                 estilo de vida e preferências. Encontre o par perfeito!
               </p>
               <Button asChild variant="link" className="mt-4">
@@ -87,7 +87,7 @@ export default function Home() {
             <CardContent>
               <p>
                 Aprenda sobre a posse responsável e as consequências do abandono
-                com artigos e explicações geradas por IA.
+                em nossa seção educativa.
               </p>
               <Button asChild variant="link" className="mt-4">
                 <Link href="/education">Saber Mais</Link>

@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { suggestAnimalMatches } from '@/ai/flows/suggest-animal-matches';
-import { animals, shelters } from '@/lib/data';
+import { animals } from '@/lib/data';
 import type { Animal } from '@/lib/types';
 import { temperamentOptions } from '@/lib/data';
 
@@ -15,68 +14,61 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, Heart, Sparkles, PawPrint } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Sparkles, PawPrint } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
 
 const matcherSchema = z.object({
-  lifestyle: z.string().min(1, 'Selecione seu nível de atividade.'),
-  livingSituation: z.string().min(1, 'Selecione seu tipo de moradia.'),
-  family: z.string().min(1, 'Descreva sua família ou quem mora com você.'),
-  preferences: z.object({
-    species: z.string().optional(),
-    size: z.string().optional(),
-    age: z.string().optional(),
-  }),
-  temperament: z.array(z.string()).refine((value) => value.some((item) => item), {
-    message: 'Você precisa selecionar pelo menos um temperamento.',
-  }),
+  species: z.string().optional(),
+  size: z.string().optional(),
+  age: z.string().optional(),
+  temperament: z.array(z.string()).optional(),
 });
 
 export default function MatcherPage() {
-  const [matches, setMatches] = useState<Animal[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [matches, setMatches] = useState<Animal[]>(animals);
 
   const form = useForm<z.infer<typeof matcherSchema>>({
     resolver: zodResolver(matcherSchema),
     defaultValues: {
-      family: '',
+      species: 'Qualquer',
+      size: 'Qualquer',
+      age: 'Qualquer',
       temperament: [],
-      preferences: { species: 'Qualquer', size: 'Qualquer', age: 'Qualquer' },
     },
   });
 
-  async function onSubmit(values: z.infer<typeof matcherSchema>) {
-    setIsLoading(true);
-    setError('');
-    setMatches([]);
-    
-    const lifestyle = `Nível de atividade: ${values.lifestyle}. Moradia: ${values.livingSituation}. Família: ${values.family}.`;
-    const preferences = `Espécie: ${values.preferences.species}, Tamanho: ${values.preferences.size}, Idade: ${values.preferences.age}. Temperamento desejado: ${values.temperament.join(', ')}.`;
-    
-    const animalProfiles = animals.map(a => {
-        const shelter = shelters.find(s => s.id === a.shelterId);
-        return `ID: ${a.id}, Nome: ${a.name}, Espécie: ${a.species}, Raça: ${a.breed}, Idade: ${a.age}, Tamanho: ${a.size}, Sexo: ${a.gender}, Personalidade: ${a.personality.join(', ')}. Abrigo: ${shelter?.name}. Descrição: ${a.description}`;
-    });
+  const watchAllFields = form.watch();
 
-    try {
-      const result = await suggestAnimalMatches({ lifestyle, preferences, animalProfiles });
-      const matchedAnimals = result.matchIds
-        .map(id => animals.find(a => a.id === id))
-        .filter((a): a is Animal => a !== undefined && a !== null);
+  useEffect(() => {
+    const applyFilters = () => {
+      const { species, size, age, temperament } = form.getValues();
+      let tempAnimals = [...animals];
+
+      if (species && species !== 'Qualquer') {
+        tempAnimals = tempAnimals.filter(animal => animal.species === species);
+      }
+      if (size && size !== 'Qualquer') {
+        tempAnimals = tempAnimals.filter(animal => animal.size === size);
+      }
+      if (age && age !== 'Qualquer') {
+        if(age === 'Filhote') tempAnimals = tempAnimals.filter(animal => animal.age <= 1);
+        if(age === 'Adulto') tempAnimals = tempAnimals.filter(animal => animal.age > 1 && animal.age < 8);
+        if(age === 'Idoso') tempAnimals = tempAnimals.filter(animal => animal.age >= 8);
+      }
+      if (temperament && temperament.length > 0) {
+        tempAnimals = tempAnimals.filter(animal => 
+          temperament.every(t => animal.personality.includes(t))
+        );
+      }
       
-      setMatches(matchedAnimals);
-    } catch (e) {
-      setError('Não foi possível encontrar seu match. Tente novamente.');
-      console.error(e);
-    }
-    setIsLoading(false);
-  }
+      setMatches(tempAnimals);
+    };
+
+    applyFilters();
+  }, [watchAllFields, form]);
+
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -87,7 +79,7 @@ export default function MatcherPage() {
             <Sparkles className="w-10 h-10 ml-4 text-primary" />
         </h1>
         <p className="text-lg text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Responda algumas perguntas e nossa IA encontrará os amigos mais compatíveis com você.
+          Use os filtros para encontrar os amigos mais compatíveis com você.
         </p>
       </header>
 
@@ -95,63 +87,22 @@ export default function MatcherPage() {
         <div className="lg:col-span-2">
           <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg sticky top-24 transition-all duration-300">
             <CardHeader>
-              <CardTitle className="font-headline text-2xl">Conte-nos sobre você</CardTitle>
+              <CardTitle className="font-headline text-2xl">Filtre suas preferências</CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="lifestyle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Qual seu nível de atividade?</FormLabel>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2">
-                          <FormItem><FormControl><RadioGroupItem value="Calmo" id="r1" /></FormControl><Label htmlFor="r1" className="ml-2 cursor-pointer">Calmo</Label></FormItem>
-                          <FormItem><FormControl><RadioGroupItem value="Moderado" id="r2" /></FormControl><Label htmlFor="r2" className="ml-2 cursor-pointer">Moderado</Label></FormItem>
-                          <FormItem><FormControl><RadioGroupItem value="Ativo" id="r3" /></FormControl><Label htmlFor="r3" className="ml-2 cursor-pointer">Ativo</Label></FormItem>
-                        </RadioGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="livingSituation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Onde você mora?</FormLabel>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-x-4 gap-y-2 pt-2">
-                           <FormItem><FormControl><RadioGroupItem value="Apartamento" id="ls1" /></FormControl><Label htmlFor="ls1" className="ml-2 cursor-pointer">Apartamento</Label></FormItem>
-                           <FormItem><FormControl><RadioGroupItem value="Casa sem quintal" id="ls2" /></FormControl><Label htmlFor="ls2" className="ml-2 cursor-pointer">Casa s/ quintal</Label></FormItem>
-                           <FormItem><FormControl><RadioGroupItem value="Casa com quintal" id="ls3" /></FormControl><Label htmlFor="ls3" className="ml-2 cursor-pointer">Casa c/ quintal</Label></FormItem>
-                        </RadioGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="family"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Com quem você mora?</FormLabel>
-                        <FormControl><Input placeholder="Ex: Sozinho, casal e 2 crianças" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <form className="space-y-6">
                   <div>
-                    <FormLabel>Preferências (opcional)</FormLabel>
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                        <FormField control={form.control} name="preferences.species" render={({ field }) => (
+                    <FormLabel>Preferências</FormLabel>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+                        <FormField control={form.control} name="species" render={({ field }) => (
                              <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Espécie</SelectItem><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select>
                         )} />
-                         <FormField control={form.control} name="preferences.size" render={({ field }) => (
+                         <FormField control={form.control} name="size" render={({ field }) => (
                              <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Tamanho</SelectItem><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select>
                         )} />
                          <FormField control={form.control} name="preferences.age" render={({ field }) => (
-                             <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Idade</SelectItem><SelectItem value="Filhote">Filhote</SelectItem><SelectItem value="Adulto">Adulto</SelectItem><SelectItem value="Idoso">Idoso</SelectItem></SelectContent></Select>
+                             <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Idade</SelectItem><SelectItem value="Filhote">Filhote (até 1 ano)</SelectItem><SelectItem value="Adulto">Adulto (1-7 anos)</SelectItem><SelectItem value="Idoso">Idoso (8+ anos)</SelectItem></SelectContent></Select>
                         )} />
                     </div>
                   </div>
@@ -162,6 +113,7 @@ export default function MatcherPage() {
                       <FormItem>
                         <div className="mb-4">
                           <FormLabel>Que tipo de temperamento você busca?</FormLabel>
+                          <FormDescription>Marque todas que se aplicam.</FormDescription>
                           <FormMessage />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -181,7 +133,7 @@ export default function MatcherPage() {
                                         checked={field.value?.includes(item.id)}
                                         onCheckedChange={(checked) => {
                                           return checked
-                                            ? field.onChange([...field.value, item.id])
+                                            ? field.onChange([...(field.value || []), item.id])
                                             : field.onChange(
                                                 field.value?.filter(
                                                   (value) => value !== item.id
@@ -200,55 +152,25 @@ export default function MatcherPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" disabled={isLoading} className="w-full text-lg" size="lg">
-                    {isLoading ? <><Loader className="mr-2 h-4 w-4 animate-spin" /> Buscando...</> : <><Heart className="mr-2 h-5 w-5" /> Encontrar meu match</>}
-                  </Button>
                 </form>
               </Form>
             </CardContent>
           </Card>
         </div>
         <div className="lg:col-span-3">
-            <h2 className="text-2xl font-bold font-headline mb-4">Seus Matches Recomendados</h2>
-            <Separator className="mb-6"/>
-            {isLoading && (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {[...Array(2)].map((_, i) => (
-                        <Card key={i} className="bg-card/70 backdrop-blur-sm border-0 shadow-lg transition-all duration-300 ease-in-out">
-                            <CardContent className="p-4 space-y-4 animate-pulse">
-                                <div className="bg-muted/80 h-40 rounded-md"></div>
-                                <div className="space-y-2">
-                                    <div className="h-6 w-1/2 bg-muted/80 rounded"></div>
-                                    <div className="h-4 w-3/4 bg-muted/80 rounded"></div>
-                                    <div className="h-4 w-full bg-muted/80 rounded"></div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                 </div>
-            )}
-            {!isLoading && matches.length > 0 && (
+            <h2 className="text-2xl font-bold font-headline mb-4">Resultados</h2>
+            {matches.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in-50 duration-500">
                     {matches.map(animal => (
                         <AnimalCard key={animal.id} animal={animal} />
                     ))}
                 </div>
-            )}
-            {!isLoading && !error && matches.length === 0 && (
+            ) : (
                  <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg min-h-[30rem] transition-all duration-300 ease-in-out">
                     <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-semibold">Preencha o formulário ao lado</h3>
+                    <h3 className="text-xl font-semibold">Nenhum animal encontrado</h3>
                     <p className="text-muted-foreground mt-2">
-                        Seus matches perfeitos aparecerão aqui!
-                    </p>
-                </Card>
-            )}
-             {!isLoading && error && (
-                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-destructive/20 text-destructive-foreground backdrop-blur-sm border-destructive/50 shadow-lg min-h-[30rem] transition-all duration-300 ease-in-out">
-                    <PawPrint className="h-16 w-16 mb-4" />
-                    <h3 className="text-xl font-semibold">Ocorreu um erro</h3>
-                    <p className="mt-2">
-                        {error}
+                        Tente ajustar seus filtros para encontrar seu novo amigo.
                     </p>
                 </Card>
             )}
