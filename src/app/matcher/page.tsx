@@ -36,27 +36,31 @@ export default function MatcherPage() {
     },
   });
 
-  const watchAllFields = form.watch();
+  const { watch } = form;
+  const species = watch('species');
+  const size = watch('size');
+  const age = watch('age');
+  const temperament = watch('temperament');
 
   useEffect(() => {
     const applyFilters = () => {
-      const { species, size, age, temperament } = form.getValues();
+      const values = form.getValues();
       let tempAnimals = [...animals];
 
-      if (species && species !== 'Qualquer') {
-        tempAnimals = tempAnimals.filter(animal => animal.species === species);
+      if (values.species && values.species !== 'Qualquer') {
+        tempAnimals = tempAnimals.filter(animal => animal.species === values.species);
       }
-      if (size && size !== 'Qualquer') {
-        tempAnimals = tempAnimals.filter(animal => animal.size === size);
+      if (values.size && values.size !== 'Qualquer') {
+        tempAnimals = tempAnimals.filter(animal => animal.size === values.size);
       }
-      if (age && age !== 'Qualquer') {
-        if(age === 'Filhote') tempAnimals = tempAnimals.filter(animal => animal.age <= 1);
-        if(age === 'Adulto') tempAnimals = tempAnimals.filter(animal => animal.age > 1 && animal.age < 8);
-        if(age === 'Idoso') tempAnimals = tempAnimals.filter(animal => animal.age >= 8);
+      if (values.age && values.age !== 'Qualquer') {
+        if(values.age === 'Filhote') tempAnimals = tempAnimals.filter(animal => animal.age <= 1);
+        if(values.age === 'Adulto') tempAnimals = tempAnimals.filter(animal => animal.age > 1 && animal.age < 8);
+        if(values.age === 'Idoso') tempAnimals = tempAnimals.filter(animal => animal.age >= 8);
       }
-      if (temperament && temperament.length > 0) {
+      if (values.temperament && values.temperament.length > 0) {
         tempAnimals = tempAnimals.filter(animal => 
-          temperament.every(t => animal.personality.includes(t))
+          values.temperament!.every(t => animal.personality.includes(t))
         );
       }
       
@@ -64,7 +68,7 @@ export default function MatcherPage() {
     };
 
     applyFilters();
-  }, [watchAllFields, form]);
+  }, [species, size, age, temperament, form]);
 
 
   return (
@@ -93,13 +97,13 @@ export default function MatcherPage() {
                     <FormLabel>Preferências</FormLabel>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
                         <FormField control={form.control} name="species" render={({ field }) => (
-                             <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Espécie</SelectItem><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select>
+                             <FormItem><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Qualquer">Espécie</SelectItem><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select></FormItem>
                         )} />
                          <FormField control={form.control} name="size" render={({ field }) => (
-                             <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Tamanho</SelectItem><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select>
+                             <FormItem><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Qualquer">Tamanho</SelectItem><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select></FormItem>
                         )} />
                          <FormField control={form.control} name="age" render={({ field }) => (
-                             <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Idade</SelectItem><SelectItem value="Filhote">Filhote (até 1 ano)</SelectItem><SelectItem value="Adulto">Adulto (1-7 anos)</SelectItem><SelectItem value="Idoso">Idoso (8+ anos)</SelectItem></SelectContent></Select>
+                            <FormItem><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Qualquer">Idade</SelectItem><SelectItem value="Filhote">Filhote (até 1 ano)</SelectItem><SelectItem value="Adulto">Adulto (1-7 anos)</SelectItem><SelectItem value="Idoso">Idoso (8+ anos)</SelectItem></SelectContent></Select></FormItem>
                         )} />
                     </div>
                   </div>
