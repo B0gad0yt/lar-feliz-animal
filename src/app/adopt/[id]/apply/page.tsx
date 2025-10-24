@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -38,7 +39,7 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
   
-  const animalRef = firestore ? doc(firestore, 'animals', params.id) : null;
+  const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
   const form = useForm<z.infer<typeof applicationSchema>>({

@@ -3,6 +3,7 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,10 +17,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AnimalProfilePage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
-  const animalRef = firestore ? doc(firestore, 'animals', params.id) : null;
+  const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
   
-  const shelterRef = firestore && animal ? doc(firestore, 'shelters', animal.shelterId) : null;
+  const shelterRef = useMemo(() => firestore && animal ? doc(firestore, 'shelters', animal.shelterId) : null, [firestore, animal]);
   const { data: shelter, loading: shelterLoading } = useDoc<Shelter>(shelterRef);
   
   const animalImages = animal?.photos.map(id => PlaceHolderImages.find(img => img.id === id)).filter(Boolean);

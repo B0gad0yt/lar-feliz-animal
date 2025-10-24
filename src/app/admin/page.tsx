@@ -7,7 +7,7 @@ import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -26,9 +26,8 @@ function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const { data: animals, loading: animalsLoading } = useCollection<Animal>(
-    firestore ? collection(firestore, 'animals') : null
-  );
+  const animalsQuery = useMemo(() => firestore ? collection(firestore, 'animals') : null, [firestore]);
+  const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
 
   const handleDelete = (animalId: string) => {
     if (!firestore) return;
@@ -137,7 +136,7 @@ export default function AdminPage() {
   const router = useRouter();
   const firestore = useFirestore();
 
-  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
+  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
 
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -153,17 +152,9 @@ export default function AdminPage() {
       if (appUser.role === 'admin') {
         setIsAuthorized(true);
       } else {
-        // Not an admin, redirect to home page
         router.push('/');
       }
     } else if (!appUserLoading && user) {
-        // This case handles when a user is authenticated but their document in 'users' collection
-        // might not exist or doesn't have a 'role' field. This is a potential state
-        // during initial user creation before the Firestore document is written.
-        // We can't immediately deny access, as the document might still be propagating.
-        // However, if we are NOT loading and still have no appUser, it's safer to redirect.
-        // The security rules are the ultimate authority.
-        // A simple redirect is a good UX measure.
          router.push('/');
     }
   }, [appUser, appUserLoading, user, router]);

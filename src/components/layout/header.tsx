@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, User, LogOut, Shield } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUser, useDoc, useFirestore } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import type { User as AppUser } from '@/lib/types';
 
 
@@ -42,31 +42,10 @@ export function Header() {
   const firestore = useFirestore();
   const auth = getAuth();
   
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user && firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        try {
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists() && userDoc.data().role === 'admin') {
-                setIsAdmin(true);
-            } else {
-                setIsAdmin(false);
-            }
-        } catch (error) {
-            // Se houver um erro de permissão aqui, o usuário não é admin.
-            // O erro será tratado pelo listener global, mas não quebra o header.
-            setIsAdmin(false);
-        }
-      } else {
-        setIsAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user, firestore]);
+  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const { data: appUser } = useDoc<AppUser>(userDocRef);
+  
+  const isAdmin = appUser?.role === 'admin';
 
   const handleSignOut = () => {
     signOut(auth);

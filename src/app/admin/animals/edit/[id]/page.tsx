@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,7 +45,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   
-  const animalRef = firestore ? doc(firestore, 'animals', params.id) : null;
+  const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
   const form = useForm<z.infer<typeof animalSchema>>({

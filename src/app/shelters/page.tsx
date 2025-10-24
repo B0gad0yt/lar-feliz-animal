@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Home, Phone, Mail, Globe } from 'lucide-react';
 import Link from 'next/link';
+import { useMemo } from 'react';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Shelter } from '@/lib/types';
@@ -11,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SheltersPage() {
   const firestore = useFirestore();
-  const sheltersQuery = firestore ? collection(firestore, 'shelters') : null;
+  const sheltersQuery = useMemo(() => firestore ? collection(firestore, 'shelters') : null, [firestore]);
   const { data: shelters, loading } = useCollection<Shelter>(sheltersQuery);
 
   const renderSkeleton = () => (
