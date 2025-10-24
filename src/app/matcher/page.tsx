@@ -7,18 +7,21 @@ import * as z from 'zod';
 import { suggestAnimalMatches } from '@/ai/flows/suggest-animal-matches';
 import { animals, shelters } from '@/lib/data';
 import type { Animal } from '@/lib/types';
+import { temperamentOptions } from '@/lib/data';
 
 import { AnimalCard } from '@/components/animal-card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader, Heart, Sparkles, PawPrint } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+
 
 const matcherSchema = z.object({
   lifestyle: z.string().min(1, 'Selecione seu nível de atividade.'),
@@ -29,7 +32,9 @@ const matcherSchema = z.object({
     size: z.string().optional(),
     age: z.string().optional(),
   }),
-  temperament: z.string().min(1, 'Descreva o temperamento que você busca.'),
+  temperament: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: 'Você precisa selecionar pelo menos um temperamento.',
+  }),
 });
 
 export default function MatcherPage() {
@@ -40,6 +45,7 @@ export default function MatcherPage() {
   const form = useForm<z.infer<typeof matcherSchema>>({
     resolver: zodResolver(matcherSchema),
     defaultValues: {
+      temperament: [],
       preferences: { species: 'Qualquer', size: 'Qualquer', age: 'Qualquer' },
     },
   });
@@ -50,7 +56,7 @@ export default function MatcherPage() {
     setMatches([]);
     
     const lifestyle = `Nível de atividade: ${values.lifestyle}. Moradia: ${values.livingSituation}. Família: ${values.family}.`;
-    const preferences = `Espécie: ${values.preferences.species}, Tamanho: ${values.preferences.size}, Idade: ${values.preferences.age}. Temperamento desejado: ${values.temperament}.`;
+    const preferences = `Espécie: ${values.preferences.species}, Tamanho: ${values.preferences.size}, Idade: ${values.preferences.age}. Temperamento desejado: ${values.temperament.join(', ')}.`;
     
     const animalProfiles = animals.map(a => {
         const shelter = shelters.find(s => s.id === a.shelterId);
@@ -99,10 +105,10 @@ export default function MatcherPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Qual seu nível de atividade?</FormLabel>
-                        <RadioGroup onValueChange={field.onChange} className="flex gap-4">
-                          <FormItem><FormControl><RadioGroupItem value="Calmo" id="r1" /></FormControl><Label htmlFor="r1" className="ml-2">Calmo</Label></FormItem>
-                          <FormItem><FormControl><RadioGroupItem value="Moderado" id="r2" /></FormControl><Label htmlFor="r2" className="ml-2">Moderado</Label></FormItem>
-                          <FormItem><FormControl><RadioGroupItem value="Ativo" id="r3" /></FormControl><Label htmlFor="r3" className="ml-2">Ativo</Label></FormItem>
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex gap-4 pt-2">
+                          <FormItem><FormControl><RadioGroupItem value="Calmo" id="r1" /></FormControl><Label htmlFor="r1" className="ml-2 cursor-pointer">Calmo</Label></FormItem>
+                          <FormItem><FormControl><RadioGroupItem value="Moderado" id="r2" /></FormControl><Label htmlFor="r2" className="ml-2 cursor-pointer">Moderado</Label></FormItem>
+                          <FormItem><FormControl><RadioGroupItem value="Ativo" id="r3" /></FormControl><Label htmlFor="r3" className="ml-2 cursor-pointer">Ativo</Label></FormItem>
                         </RadioGroup>
                         <FormMessage />
                       </FormItem>
@@ -114,10 +120,10 @@ export default function MatcherPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Onde você mora?</FormLabel>
-                        <RadioGroup onValueChange={field.onChange} className="flex gap-4">
-                           <FormItem><FormControl><RadioGroupItem value="Apartamento" id="ls1" /></FormControl><Label htmlFor="ls1" className="ml-2">Apto</Label></FormItem>
-                           <FormItem><FormControl><RadioGroupItem value="Casa sem quintal" id="ls2" /></FormControl><Label htmlFor="ls2" className="ml-2">Casa s/ quintal</Label></FormItem>
-                           <FormItem><FormControl><RadioGroupItem value="Casa com quintal" id="ls3" /></FormControl><Label htmlFor="ls3" className="ml-2">Casa c/ quintal</Label></FormItem>
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-x-4 gap-y-2 pt-2">
+                           <FormItem><FormControl><RadioGroupItem value="Apartamento" id="ls1" /></FormControl><Label htmlFor="ls1" className="ml-2 cursor-pointer">Apartamento</Label></FormItem>
+                           <FormItem><FormControl><RadioGroupItem value="Casa sem quintal" id="ls2" /></FormControl><Label htmlFor="ls2" className="ml-2 cursor-pointer">Casa s/ quintal</Label></FormItem>
+                           <FormItem><FormControl><RadioGroupItem value="Casa com quintal" id="ls3" /></FormControl><Label htmlFor="ls3" className="ml-2 cursor-pointer">Casa c/ quintal</Label></FormItem>
                         </RadioGroup>
                         <FormMessage />
                       </FormItem>
@@ -129,7 +135,7 @@ export default function MatcherPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Com quem você mora?</FormLabel>
-                        <FormControl><Input placeholder="Ex: Sozinho, com casal e 2 crianças" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Ex: Sozinho, casal e 2 crianças" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -138,7 +144,7 @@ export default function MatcherPage() {
                     <FormLabel>Preferências (opcional)</FormLabel>
                     <div className="grid grid-cols-3 gap-2 mt-2">
                         <FormField control={form.control} name="preferences.species" render={({ field }) => (
-                             <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Espécie</SelectItem><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem></SelectContent></Select>
+                             <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Espécie</SelectItem><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select>
                         )} />
                          <FormField control={form.control} name="preferences.size" render={({ field }) => (
                              <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Tamanho</SelectItem><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select>
@@ -151,11 +157,45 @@ export default function MatcherPage() {
                    <FormField
                     control={form.control}
                     name="temperament"
-                    render={({ field }) => (
+                    render={() => (
                       <FormItem>
-                        <FormLabel>Que tipo de temperamento você busca?</FormLabel>
-                        <FormControl><Textarea placeholder="Ex: Um companheiro calmo para o sofá, um parceiro de aventuras, um animal independente..." {...field} /></FormControl>
-                        <FormMessage />
+                        <div className="mb-4">
+                          <FormLabel>Que tipo de temperamento você busca?</FormLabel>
+                          <FormMessage />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {temperamentOptions.map((item) => (
+                            <FormField
+                              key={item.id}
+                              control={form.control}
+                              name="temperament"
+                              render={({ field }) => {
+                                return (
+                                  <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                  >
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                          return checked
+                                            ? field.onChange([...field.value, item.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                  (value) => value !== item.id
+                                                )
+                                              )
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">{item.label}</FormLabel>
+                                  </FormItem>
+                                )
+                              }}
+                            />
+                          ))}
+                        </div>
                       </FormItem>
                     )}
                   />
@@ -173,13 +213,13 @@ export default function MatcherPage() {
             {isLoading && (
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {[...Array(2)].map((_, i) => (
-                        <Card key={i} className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+                        <Card key={i} className="bg-card/70 backdrop-blur-sm border-0 shadow-lg transition-all duration-300 ease-in-out">
                             <CardContent className="p-4 space-y-4 animate-pulse">
-                                <div className="bg-muted h-40 rounded-md"></div>
+                                <div className="bg-muted/80 h-40 rounded-md"></div>
                                 <div className="space-y-2">
-                                    <div className="h-6 w-1/2 bg-muted rounded"></div>
-                                    <div className="h-4 w-3/4 bg-muted rounded"></div>
-                                    <div className="h-4 w-full bg-muted rounded"></div>
+                                    <div className="h-6 w-1/2 bg-muted/80 rounded"></div>
+                                    <div className="h-4 w-3/4 bg-muted/80 rounded"></div>
+                                    <div className="h-4 w-full bg-muted/80 rounded"></div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -187,14 +227,14 @@ export default function MatcherPage() {
                  </div>
             )}
             {!isLoading && matches.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in-50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in-50 duration-500">
                     {matches.map(animal => (
                         <AnimalCard key={animal.id} animal={animal} />
                     ))}
                 </div>
             )}
             {!isLoading && !error && matches.length === 0 && (
-                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg min-h-[30rem] transition-all duration-300">
+                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg min-h-[30rem] transition-all duration-300 ease-in-out">
                     <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold">Preencha o formulário ao lado</h3>
                     <p className="text-muted-foreground mt-2">
@@ -203,7 +243,7 @@ export default function MatcherPage() {
                 </Card>
             )}
              {!isLoading && error && (
-                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-destructive/10 text-destructive-foreground backdrop-blur-sm shadow-lg min-h-[30rem] transition-all duration-300">
+                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-destructive/20 text-destructive-foreground backdrop-blur-sm border-destructive/50 shadow-lg min-h-[30rem] transition-all duration-300 ease-in-out">
                     <PawPrint className="h-16 w-16 mb-4" />
                     <h3 className="text-xl font-semibold">Ocorreu um erro</h3>
                     <p className="mt-2">

@@ -96,3 +96,14 @@ export const animals: Animal[] = [
     shelterId: 'shelter-1',
   },
 ];
+
+export const temperamentOptions = [
+    { id: 'Brincalhão', label: 'Brincalhão' },
+    { id: 'Calmo', label: 'Calmo' },
+    { id: 'Energético', label: 'Energético' },
+    { id: 'Carinhoso', label: 'Carinhoso' },
+    { id: 'Independente', label: 'Independente' },
+    { id: 'Sociável', label: 'Sociável com outros animais' },
+    { id: 'Tímido', label: 'Tímido' },
+    { id: 'Leal', label: 'Leal' },
+] as const;
