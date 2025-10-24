@@ -17,6 +17,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader, Heart, Sparkles, PawPrint } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const matcherSchema = z.object({
   lifestyle: z.string().min(1, 'Selecione seu nível de atividade.'),
