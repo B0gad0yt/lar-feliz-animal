@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,8 +22,6 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
   const shelterRef = useMemo(() => firestore && animal ? doc(firestore, 'shelters', animal.shelterId) : null, [firestore, animal]);
   const { data: shelter, loading: shelterLoading } = useDoc<Shelter>(shelterRef);
   
-  const animalImages = animal?.photos.map(id => PlaceHolderImages.find(img => img.id === id)).filter(Boolean);
-
   const InfoCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
     <div className="flex items-start">
       <div className="text-primary mr-4 mt-1">{icon}</div>
@@ -63,10 +60,10 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
         <div className="flex flex-col">
           <Carousel className="w-full rounded-lg overflow-hidden shadow-lg">
             <CarouselContent>
-              {animalImages && animalImages.map((image, index) => (
+              {animal.photos && animal.photos.map((photo, index) => (
                 <CarouselItem key={index}>
                   <div className="relative w-full aspect-square">
-                    {image && <Image src={image.imageUrl} alt={`${animal.name} - Foto ${index + 1}`} fill className="object-cover" data-ai-hint={image.imageHint} />}
+                    <Image src={photo} alt={`${animal.name} - Foto ${index + 1}`} fill className="object-cover" />
                   </div>
                 </CarouselItem>
               ))}
@@ -142,5 +139,3 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
     </div>
   );
 }
-
-    

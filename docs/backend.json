@@ -28,7 +28,7 @@
         "story": { "type": "string" },
         "personality": { "type": "array", "items": { "type": "string" } },
         "health": { "type": "array", "items": { "type": "string" } },
-        "photos": { "type": "array", "items": { "type": "string" } },
+        "photos": { "type": "array", "items": { "type": "string", "description": "A photo of the animal, as a data URI." } },
         "shelterId": { "type": "string" }
       },
       "required": ["name", "species", "breed", "age", "size", "gender", "shelterId"]

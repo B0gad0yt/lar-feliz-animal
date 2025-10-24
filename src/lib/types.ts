@@ -10,7 +10,7 @@ export type Animal = {
   story: string;
   personality: string[];
   health: string[];
-  photos: string[];
+  photos: string[]; // data URIs
   shelterId: string;
 };
 

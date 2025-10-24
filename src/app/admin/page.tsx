@@ -24,7 +24,6 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Animal, User as AppUser, Shelter, SiteConfig } from '@/lib/types';
 import {
   AlertDialog,
@@ -104,15 +103,14 @@ function AnimalsTab() {
                     </TableHeader>
                     <TableBody>
                         {animals && animals.map((animal) => {
-                            const image = PlaceHolderImages.find(p => p.id === animal.photos[0]);
                             return (
                                 <TableRow key={animal.id}>
                                     <TableCell className="hidden sm:table-cell">
-                                        {image && <Image
+                                        {animal.photos[0] && <Image
                                         alt={animal.name}
                                         className="aspect-square rounded-md object-cover"
                                         height="64"
-                                        src={image.imageUrl}
+                                        src={animal.photos[0]}
                                         width="64"
                                         />}
                                     </TableCell>
@@ -427,7 +425,6 @@ export default function AdminPage() {
 
     if (!user) {
       setAuthStatus('unauthorized');
-      router.push('/login'); 
       return;
     }
     
@@ -514,5 +511,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

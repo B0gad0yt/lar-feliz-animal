@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Animal } from '@/lib/types';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ interface AnimalCardProps {
 }
 
 export function AnimalCard({ animal }: AnimalCardProps) {
-  const image = PlaceHolderImages.find((img) => img.id === animal.photos[0]);
+  const image = animal.photos[0];
 
   return (
     <Card className="overflow-hidden flex flex-col group bg-card/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:-translate-y-1">
@@ -20,11 +19,10 @@ export function AnimalCard({ animal }: AnimalCardProps) {
         <div className="relative w-full h-56 overflow-hidden">
           {image && (
             <Image
-              src={image.imageUrl}
+              src={image}
               alt={animal.name}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
-              data-ai-hint={image.imageHint}
             />
           )}
         </div>

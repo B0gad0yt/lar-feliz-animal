@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -19,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Trash, ArrowLeft } from 'lucide-react';
+import { Save, Trash, ArrowLeft, Upload, X } from 'lucide-react';
 import type { Animal } from '@/lib/types';
 
 
@@ -34,7 +35,7 @@ const animalSchema = z.object({
   story: z.string().min(10, 'História é obrigatória.'),
   personality: z.array(z.string()).min(1, 'Selecione ao menos um traço de personalidade.'),
   health: z.array(z.string()).min(1, 'Informe ao menos um status de saúde.'),
-  photos: z.array(z.string()).min(1, 'Informe ao menos uma foto (ID da imagem).'),
+  photos: z.array(z.string()).min(1, 'Envie ao menos uma foto.'),
   shelterId: z.string().min(1, 'ID do abrigo é obrigatório.'),
 });
 
@@ -44,6 +45,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
@@ -74,6 +76,34 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
       form.reset(animal);
     }
   }, [animal, form]);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    for (const file of Array.from(files)) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        
+        // Simple client-side optimization
+        const img = document.createElement('img');
+        img.src = result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const compressedResult = canvas.toDataURL('image/webp', 0.8);
+          appendPhoto(compressedResult);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const onSubmit = (values: z.infer<typeof animalSchema>) => {
     if (!firestore || !animalRef) return;
@@ -202,23 +232,32 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                             </div>
                         ))}
                      </div>
-                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendHealth({ value: '' })}>Adicionar Status</Button>
+                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendHealth('')}>Adicionar Status</Button>
                 </div>
                 
                 <div>
                     <FormLabel>Fotos</FormLabel>
-                    <FormDescription>Adicione os IDs das imagens do arquivo placeholder-images.json.</FormDescription>
-                     <div className="space-y-2 mt-2">
+                    <FormDescription>Faça upload das fotos do animal.</FormDescription>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
                         {photoFields.map((field, index) => (
-                            <div key={field.id} className="flex items-center gap-2">
-                                <FormField control={form.control} name={`photos.${index}`} render={({ field }) => (
-                                    <FormItem className="flex-grow"><FormControl><Input {...field} /></FormControl></FormItem>
-                                )} />
-                                <Button type="button" variant="destructive" size="icon" onClick={() => removePhoto(index)}><Trash className="h-4 w-4" /></Button>
+                            <div key={field.id} className="relative aspect-square">
+                                <Image src={field.value} alt={`Foto ${index + 1}`} layout="fill" className="rounded-md object-cover"/>
+                                <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 z-10" onClick={() => removePhoto(index)}>
+                                    <X className="h-4 w-4" />
+                                </Button>
                             </div>
                         ))}
-                     </div>
-                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendPhoto({ value: '' })}>Adicionar Foto</Button>
+                         <Button type="button" variant="outline" className="aspect-square flex items-center justify-center flex-col" onClick={() => fileInputRef.current?.click()}>
+                            <Upload className="h-8 w-8" />
+                            <span>Adicionar</span>
+                        </Button>
+                    </div>
+                     <FormControl>
+                        <Input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" multiple/>
+                     </FormControl>
+                     <FormField control={form.control} name="photos" render={({ field }) => (
+                        <FormItem><FormMessage /></FormItem>
+                     )} />
                 </div>
                 
                 <FormField control={form.control} name="shelterId" render={({ field }) => (
@@ -236,5 +275,3 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
