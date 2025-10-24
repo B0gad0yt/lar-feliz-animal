@@ -1,35 +1,109 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for user profiles,
+ * allows public read access to animals and shelters, and restricts site configuration
+ * to authenticated users.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores individual user profiles, accessible only to the user themselves.
+ * - /animals/{animalId}: Stores animal adoption information, publicly readable but write-protected.
+ * - /shelters/{shelterId}: Stores shelter information, publicly readable but write-protected.
+ * - /config/site: Stores global website configuration.
+ *
+ * Key Security Decisions:
+ * - Users can only read and write their own profile data. Listing all users is disallowed.
+ * - Animals and shelters are publicly readable but cannot be created, updated, or deleted through the client.
+ * - Site configuration is restricted and requires authentication for access.
+ *
+ * Denormalization for Authorization:
+ * - The rules rely on the `request.auth.uid` to match the `{userId}` path segment in `/users/{userId}`.
+ *   This avoids the need to store the user ID redundantly inside the document.
+ *
+ * Structural Segregation:
+ * - Publicly accessible data (animals, shelters) are stored in top-level collections.
+ * - Private user data is stored under the `/users/{userId}` path.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // By default, deny all reads and writes
-    match /{document=**} {
-      allow read, write: if false;
-    }
-    
-    // Users can read their own profile, admins can read any profile
+
+    /**
+     * @description Controls access to user documents.
+     * @path /users/{userId}
+     * @allow (get, create, update, delete) if the request is made by the user with matching ID.
+     * @deny (get) if the request is made by a different user.
+     * @deny (create) if the document ID does not match the authenticated user's ID.
+     * @deny (update, delete) if the document does not exist or if the request is made by a different user.
+     * @principle Enforces document ownership for writes and reads.
+     */
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow write: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
-    }
-    
-    // Anyone can read animals and shelters
-    match /animals/{animalId} {
-      allow read: if true;
-      // Only admins can create, update, or delete animals
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    match /shelters/{shelterId} {
-      allow read: if true;
-      // Only admins can create, update, or delete shelters
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Allow a user to read their own profile.
+      allow get: if isSignedIn() && isOwner(userId);
+      // Prevent listing all users.
+      allow list: if false;
+      // Allow a user to create their own profile, but only if the userId matches their auth UID.
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
+      // Allow a user to update their own profile, but only if the document exists and the userId matches their auth UID. Enforce immutability of user ID.
+      allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      // Allow a user to delete their own profile, but only if the document exists and they are the owner.
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
-    // Site config is readable by anyone, writable only by admins
-    match /config/site {
-        allow read: if true;
-        allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    /**
+     * @description Controls access to animal documents.
+     * @path /animals/{animalId}
+     * @allow (get, list) Public read access.
+     * @deny (create, update, delete) All write operations are denied.
+     * @principle Allows public read access, restricts all write access.
+     */
+    match /animals/{animalId} {
+      // Allow anyone to read animal information.
+      allow get, list: if true;
+      // Prevent anyone from creating, updating, or deleting animal information via client.
+      allow create, update, delete: if false;
     }
+
+    /**
+     * @description Controls access to shelter documents.
+     * @path /shelters/{shelterId}
+     * @allow (get, list) Public read access.
+     * @deny (create, update, delete) All write operations are denied.
+     * @principle Allows public read access, restricts all write access.
+     */
+    match /shelters/{shelterId} {
+      // Allow anyone to read shelter information.
+      allow get, list: if true;
+      // Prevent anyone from creating, updating, or deleting shelter information via client.
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Controls access to site configuration.
+     * @path /config/site
+     * @allow (get) Authenticated users can read the configuration.
+     * @deny (create, update, delete) All write operations are denied.
+     * @principle Restricts site configuration to authenticated users.
+     */
+    match /config/site {
+      // Allow only authenticated users to read the site configuration.
+      allow get: if isSignedIn();
+      // Prevent anyone from creating, updating, or deleting the site configuration via client.
+      allow create, update, delete: if false;
+    }
+  }
+
+  // Helper function to determine if the user is signed in.
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  // Helper function to determine if the requesting user is the owner of the document.
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+    // Helper function to determine if the requesting user is the owner of the document and the document exists.
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
   }
 }
