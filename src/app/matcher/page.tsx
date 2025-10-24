@@ -9,14 +9,11 @@ import type { Animal } from '@/lib/types';
 import { temperamentOptions } from '@/lib/data';
 
 import { AnimalCard } from '@/components/animal-card';
-import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, PawPrint } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
 
 
 const matcherSchema = z.object({
@@ -101,7 +98,7 @@ export default function MatcherPage() {
                          <FormField control={form.control} name="size" render={({ field }) => (
                              <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Tamanho</SelectItem><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select>
                         )} />
-                         <FormField control={form.control} name="preferences.age" render={({ field }) => (
+                         <FormField control={form.control} name="age" render={({ field }) => (
                              <Select onValueChange={field.onChange} defaultValue={field.value}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Qualquer">Idade</SelectItem><SelectItem value="Filhote">Filhote (até 1 ano)</SelectItem><SelectItem value="Adulto">Adulto (1-7 anos)</SelectItem><SelectItem value="Idoso">Idoso (8+ anos)</SelectItem></SelectContent></Select>
                         )} />
                     </div>
