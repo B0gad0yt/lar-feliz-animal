@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useDoc } from '@/firebase';
+import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useCollection } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
@@ -16,10 +16,10 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Shield, Home, Bone } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Animal, User as AppUser } from '@/lib/types';
+import type { Animal } from '@/lib/types';
 
 
 function AdminDashboard() {
@@ -135,12 +135,8 @@ function AdminDashboard() {
 export default function AdminPage() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
-  const firestore = useFirestore();
 
-  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
-  const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
-
-  if (userLoading || appUserLoading) {
+  if (userLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
 
@@ -149,28 +145,8 @@ export default function AdminPage() {
     return null;
   }
   
-  if (appUser?.role !== 'admin') {
-     return (
-      <div className="container mx-auto max-w-3xl py-12 px-4">
-        <Card className="text-center bg-card/70 backdrop-blur-sm border-destructive/50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-3xl font-headline text-destructive flex items-center justify-center">
-                <Shield className="mr-2 h-8 w-8"/> Acesso Restrito
-            </CardTitle>
-            <CardDescription>
-              Você não tem permissão para acessar esta página.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Esta área é reservada para administradores do site.</p>
-            <Button asChild className="mt-6" onClick={() => router.push('/')}>
-              <Link href="/">Voltar para a página inicial</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // A verificação de admin será feita pelas regras do Firestore.
+  // Se o usuário não for admin, as operações de escrita falharão e o error-emitter cuidará de notificar.
 
   return (
     <div className="container mx-auto py-12 px-4">

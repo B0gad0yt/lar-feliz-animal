@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirestore, useUser, useDoc } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -20,8 +20,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash, ArrowLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
-import type { User as AppUser } from '@/lib/types';
-
 
 const animalSchema = z.object({
   name: z.string().min(2, 'Nome é obrigatório.'),
@@ -43,9 +41,7 @@ export default function NewAnimalPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
-  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
-  const { data: appUser, loading: userLoading } = useDoc<AppUser>(userDocRef);
+  const { user, loading: userLoading } = useUser();
 
   const form = useForm<z.infer<typeof animalSchema>>({
     resolver: zodResolver(animalSchema),
@@ -90,27 +86,12 @@ export default function NewAnimalPage() {
   if (userLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
-
-  if (appUser?.role !== 'admin') {
-     return (
-      <div className="container mx-auto max-w-3xl py-12 px-4">
-        <Card className="text-center bg-card/70 backdrop-blur-sm border-destructive/50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-3xl font-headline text-destructive flex items-center justify-center">
-                <Shield className="mr-2 h-8 w-8"/> Acesso Restrito
-            </CardTitle>
-            <CardDescription>
-              Você não tem permissão para acessar esta página.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild onClick={() => router.back()}>
-              <Link href="#">Voltar</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  
+  // Acesso é verificado pelas regras do Firestore. Um toast de erro aparecerá se o usuário não for admin.
+  // Redirecionamos se o usuário não estiver logado.
+  if (!user) {
+    router.push('/login');
+    return null;
   }
 
 

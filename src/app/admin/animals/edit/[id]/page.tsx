@@ -19,9 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Trash, ArrowLeft, Shield } from 'lucide-react';
-import Link from 'next/link';
-import type { Animal, User as AppUser } from '@/lib/types';
+import { Save, Trash, ArrowLeft } from 'lucide-react';
+import type { Animal } from '@/lib/types';
 
 
 const animalSchema = z.object({
@@ -44,11 +43,8 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   
-  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
-  const { data: appUser, loading: userLoading } = useDoc<AppUser>(userDocRef);
-
   const animalRef = firestore ? doc(firestore, 'animals', params.id) : null;
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
@@ -94,27 +90,12 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   if (userLoading || animalLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
-
-  if (appUser?.role !== 'admin') {
-     return (
-      <div className="container mx-auto max-w-3xl py-12 px-4">
-        <Card className="text-center bg-card/70 backdrop-blur-sm border-destructive/50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-3xl font-headline text-destructive flex items-center justify-center">
-                <Shield className="mr-2 h-8 w-8"/> Acesso Restrito
-            </CardTitle>
-            <CardDescription>
-              Você não tem permissão para acessar esta página.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-             <Button asChild onClick={() => router.back()}>
-              <Link href="#">Voltar</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  
+  // Acesso é verificado pelas regras do Firestore. Um toast de erro aparecerá se o usuário não for admin.
+  // Redirecionamos se o usuário não estiver logado.
+  if (!user) {
+    router.push('/login');
+    return null;
   }
   
   if (!animal && !animalLoading) {

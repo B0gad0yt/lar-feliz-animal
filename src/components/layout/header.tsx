@@ -45,7 +45,15 @@ export function Header() {
   const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
   const { data: appUser } = useDoc<AppUser>(userDocRef);
   
-  const isAdmin = appUser?.role === 'admin';
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  React.useEffect(() => {
+    if (appUser) {
+      setIsAdmin(appUser.role === 'admin');
+    } else {
+      setIsAdmin(false);
+    }
+  }, [appUser]);
 
   const handleSignOut = () => {
     signOut(auth);
