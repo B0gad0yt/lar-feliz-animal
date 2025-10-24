@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { animals } from '@/lib/data';
-import { useUser } from '@/firebase'; // Importa o hook useUser
+import { useUser, useDoc, useFirestore } from '@/firebase'; 
+import { doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Heart, LogIn } from 'lucide-react';
 import Link from 'next/link';
+import type { Animal } from '@/lib/types';
 
 const applicationSchema = z.object({
   fullName: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -34,8 +35,11 @@ const applicationSchema = z.object({
 export default function AdoptionApplicationPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading } = useUser(); // Usa o hook para obter o usuário
-  const animal = animals.find((a) => a.id === params.id);
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
+  
+  const animalRef = firestore ? doc(firestore, 'animals', params.id) : null;
+  const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
   const form = useForm<z.infer<typeof applicationSchema>>({
     resolver: zodResolver(applicationSchema),
@@ -43,6 +47,10 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
       agreement: false,
     },
   });
+  
+  if (animalLoading) {
+    return <div className="container mx-auto text-center py-12">Carregando...</div>;
+  }
 
   if (!animal) {
     return (
@@ -56,12 +64,10 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     )
   }
 
-  // Se estiver carregando, mostra uma mensagem
-  if (loading) {
+  if (userLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
 
-  // Se o usuário não estiver logado, mostra o aviso
   if (!user) {
     return (
       <div className="container mx-auto max-w-3xl py-12 px-4">

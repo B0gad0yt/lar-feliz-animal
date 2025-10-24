@@ -1,0 +1,187 @@
+'use client';
+
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useCollection } from '@/firebase';
+import { collection, doc, deleteDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import Link from 'next/link';
+import Image from 'next/image';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Shield, Home, Bone } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import type { Animal } from '@/lib/types';
+
+
+export default function AdminPage() {
+  const { user, loading: userLoading } = useUser();
+  const router = useRouter();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+
+  // TODO: Implement proper role-based access control. For now, we'll check against a hardcoded admin UID.
+  const adminUid = 'REPLACE_WITH_ACTUAL_ADMIN_UID'; // This should come from a secure source
+
+  const { data: animals, loading: animalsLoading } = useCollection<Animal>(
+    firestore ? collection(firestore, 'animals') : null
+  );
+
+  const handleDelete = async (animalId: string) => {
+    if (!firestore) return;
+    if (confirm('Tem certeza que deseja excluir este animal?')) {
+      try {
+        await deleteDoc(doc(firestore, 'animals', animalId));
+        toast({
+          title: 'Animal excluído com sucesso!',
+        });
+      } catch (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao excluir animal.',
+          description: 'Ocorreu um erro. Tente novamente.',
+        });
+        console.error('Error deleting animal:', error);
+      }
+    }
+  };
+
+
+  if (userLoading || animalsLoading) {
+    return <div className="container mx-auto text-center py-12">Carregando...</div>;
+  }
+
+  // Proper access control should be done via Firestore security rules and backend logic
+  // This client-side check is for UI purposes only.
+  if (!user || user.uid !== adminUid) {
+     return (
+      <div className="container mx-auto max-w-3xl py-12 px-4">
+        <Card className="text-center bg-card/70 backdrop-blur-sm border-destructive/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-3xl font-headline text-destructive flex items-center justify-center">
+                <Shield className="mr-2 h-8 w-8"/> Acesso Restrito
+            </CardTitle>
+            <CardDescription>
+              Você não tem permissão para acessar esta página.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Esta área é reservada para administradores do site.</p>
+            <Button asChild className="mt-6" onClick={() => router.push('/')}>
+              <Link href="/">Voltar para a página inicial</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-12 px-4">
+       <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold font-headline">Painel de Administração</h1>
+        {/* Placeholder for future global actions or settings */}
+      </div>
+
+       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <aside className="md:col-span-1">
+          <nav className="flex flex-col space-y-2 sticky top-24">
+            <Button variant="ghost" className="justify-start text-lg bg-accent">
+              <Bone className="mr-2 h-5 w-5" />
+              Animais
+            </Button>
+            <Button variant="ghost" className="justify-start text-lg" disabled>
+              <Home className="mr-2 h-5 w-5" />
+              Abrigos
+            </Button>
+             <Button variant="ghost" className="justify-start text-lg" disabled>
+              <Settings className="mr-2 h-5 w-5" />
+              Configurações
+            </Button>
+          </nav>
+        </aside>
+
+        <main className="md:col-span-3">
+            <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Gerenciar Animais</CardTitle>
+                        <CardDescription>Adicione, edite ou remova animais do sistema.</CardDescription>
+                    </div>
+                    <Button asChild>
+                        <Link href="/admin/animals/new">
+                            <PlusCircle className="mr-2 h-5 w-5" /> Adicionar Animal
+                        </Link>
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                   <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="hidden w-[100px] sm:table-cell">
+                                    <span className="sr-only">Imagem</span>
+                                </TableHead>
+                                <TableHead>Nome</TableHead>
+                                <TableHead>Espécie</TableHead>
+                                <TableHead className="hidden md:table-cell">Idade</TableHead>
+                                <TableHead className="hidden md:table-cell">Status</TableHead>
+                                <TableHead>
+                                    <span className="sr-only">Ações</span>
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {animals && animals.map((animal) => {
+                                const image = PlaceHolderImages.find(p => p.id === animal.photos[0]);
+                                return (
+                                    <TableRow key={animal.id}>
+                                        <TableCell className="hidden sm:table-cell">
+                                            {image && <Image
+                                            alt={animal.name}
+                                            className="aspect-square rounded-md object-cover"
+                                            height="64"
+                                            src={image.imageUrl}
+                                            width="64"
+                                            />}
+                                        </TableCell>
+                                        <TableCell className="font-medium">{animal.name}</TableCell>
+                                        <TableCell>{animal.species}</TableCell>
+                                        <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
+                                        <TableCell className="hidden md:table-cell">
+                                            <Badge variant="outline">Disponível</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    <span className="sr-only">Toggle menu</span>
+                                                </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
+                                                        <Edit className="mr-2 h-4 w-4" />Editar
+                                                    </Link></DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDelete(animal.id as string)} className="text-destructive cursor-pointer">
+                                                        <Trash className="mr-2 h-4 w-4" />Excluir
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </main>
+       </div>
+    </div>
+  );
+}

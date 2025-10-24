@@ -1,23 +1,28 @@
+'use client';
+
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { animals, shelters } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PawPrint, Heart, Stethoscope, Home, Calendar, Bone, Cat } from 'lucide-react';
+import { useDoc, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { Animal, Shelter } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AnimalProfilePage({ params }: { params: { id: string } }) {
-  const animal = animals.find((a) => a.id === params.id);
-
-  if (!animal) {
-    notFound();
-  }
-
-  const shelter = shelters.find((s) => s.id === animal.shelterId);
-  const animalImages = animal.photos.map(id => PlaceHolderImages.find(img => img.id === id)).filter(Boolean);
+  const firestore = useFirestore();
+  const animalRef = firestore ? doc(firestore, 'animals', params.id) : null;
+  const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
+  
+  const shelterRef = firestore && animal ? doc(firestore, 'shelters', animal.shelterId) : null;
+  const { data: shelter, loading: shelterLoading } = useDoc<Shelter>(shelterRef);
+  
+  const animalImages = animal?.photos.map(id => PlaceHolderImages.find(img => img.id === id)).filter(Boolean);
 
   const InfoCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
     <div className="flex items-start">
@@ -29,13 +34,35 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
     </div>
   );
 
+  if (animalLoading || shelterLoading) {
+      return (
+          <div className="container mx-auto max-w-5xl py-12 px-4">
+              <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+                  <Skeleton className="w-full aspect-square rounded-lg"/>
+                  <div className="flex flex-col space-y-6">
+                      <Skeleton className="h-12 w-3/4"/>
+                      <Skeleton className="h-6 w-1/2"/>
+                      <Skeleton className="h-32 w-full"/>
+                      <Skeleton className="h-20 w-full"/>
+                      <Skeleton className="h-20 w-full"/>
+                      <Skeleton className="h-12 w-full"/>
+                  </div>
+              </div>
+          </div>
+      )
+  }
+
+  if (!animal) {
+    notFound();
+  }
+
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
         <div className="flex flex-col">
           <Carousel className="w-full rounded-lg overflow-hidden shadow-lg">
             <CarouselContent>
-              {animalImages.map((image, index) => (
+              {animalImages && animalImages.map((image, index) => (
                 <CarouselItem key={index}>
                   <div className="relative w-full aspect-square">
                     {image && <Image src={image.imageUrl} alt={`${animal.name} - Foto ${index + 1}`} fill className="object-cover" data-ai-hint={image.imageHint} />}

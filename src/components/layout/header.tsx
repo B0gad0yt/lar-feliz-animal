@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, PawPrint, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut, Shield } from 'lucide-react';
 import { useState } from 'react';
 
 import { Logo } from '@/components/icons/logo';
@@ -37,6 +37,9 @@ export function Header() {
   const [isSheetOpen, setSheetOpen] = useState(false);
   const { user, loading } = useUser();
   const auth = getAuth();
+  
+  // This is a placeholder for actual admin logic
+  const isAdmin = user && user.uid === 'REPLACE_WITH_ACTUAL_ADMIN_UID';
 
   const handleSignOut = () => {
     auth.signOut();
@@ -85,6 +88,14 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                 <Link href="/admin">
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Painel Admin</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair</span>
@@ -132,7 +143,7 @@ export function Header() {
                 <span className="sr-only">Abrir menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="bg-background/95 backdrop-blur-sm">
+            <SheetContent side="left" className="bg-background/95 backdrop-blur-sm p-0">
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between p-4 border-b">
                    <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>
@@ -144,6 +155,7 @@ export function Header() {
                   {navItems.map((item) => (
                     <NavLink key={item.href} {...item} />
                   ))}
+                  {isAdmin && <NavLink href="/admin" label="Painel Admin" />}
                 </nav>
                  <div className="mt-auto p-4 border-t">
                   {user ? (

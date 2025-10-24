@@ -1,18 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { animals } from '@/lib/data';
+import { useState, useMemo } from 'react';
+import { useCollection, useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import type { Animal } from '@/lib/types';
 import { AnimalCard } from '@/components/animal-card';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, PawPrint } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdoptPage() {
-  const [filteredAnimals, setFilteredAnimals] = useState<Animal[]>(animals);
+  const firestore = useFirestore();
+  const animalsQuery = useMemo(() => firestore ? collection(firestore, 'animals') : null, [firestore]);
+  const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
+
   const [filters, setFilters] = useState({
     search: '',
     species: 'all',
@@ -21,32 +25,39 @@ export default function AdoptPage() {
   });
 
   const handleFilterChange = (filterName: string, value: string) => {
-    const newFilters = { ...filters, [filterName]: value };
-    setFilters(newFilters);
-    applyFilters(newFilters);
+    setFilters(prevFilters => ({ ...prevFilters, [filterName]: value }));
   };
 
-  const applyFilters = (currentFilters: typeof filters) => {
-    let tempAnimals = [...animals];
-
-    if (currentFilters.search) {
-      tempAnimals = tempAnimals.filter((animal) =>
-        animal.name.toLowerCase().includes(currentFilters.search.toLowerCase()) ||
-        animal.breed.toLowerCase().includes(currentFilters.search.toLowerCase())
-      );
-    }
-    if (currentFilters.species !== 'all') {
-      tempAnimals = tempAnimals.filter((animal) => animal.species === currentFilters.species);
-    }
-    if (currentFilters.size !== 'all') {
-      tempAnimals = tempAnimals.filter((animal) => animal.size === currentFilters.size);
-    }
-    if (currentFilters.gender !== 'all') {
-      tempAnimals = tempAnimals.filter((animal) => animal.gender === currentFilters.gender);
-    }
-
-    setFilteredAnimals(tempAnimals);
-  };
+  const filteredAnimals = useMemo(() => {
+    if (!animals) return [];
+    
+    return animals.filter(animal => {
+        const searchMatch = filters.search 
+            ? animal.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+              animal.breed.toLowerCase().includes(filters.search.toLowerCase())
+            : true;
+        const speciesMatch = filters.species !== 'all' ? animal.species === filters.species : true;
+        const sizeMatch = filters.size !== 'all' ? animal.size === filters.size : true;
+        const genderMatch = filters.gender !== 'all' ? animal.gender === filters.gender : true;
+        
+        return searchMatch && speciesMatch && sizeMatch && genderMatch;
+    });
+  }, [animals, filters]);
+  
+  const renderSkeleton = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+                <Skeleton className="w-full h-56" />
+                <CardContent className="p-4 space-y-2">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
+            </Card>
+        ))}
+    </div>
+  );
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -118,20 +129,22 @@ export default function AdoptPage() {
           </Card>
         </aside>
         <main className="w-full md:w-3/4">
-          {filteredAnimals.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAnimals.map((animal) => (
-                <AnimalCard key={animal.id} animal={animal} />
-              ))}
-            </div>
-          ) : (
-            <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg">
-                <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold">Nenhum animal encontrado</h3>
-                <p className="text-muted-foreground mt-2">
-                    Tente ajustar seus filtros para encontrar seu novo amigo.
-                </p>
-            </Card>
+          {animalsLoading ? renderSkeleton() : (
+            filteredAnimals.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAnimals.map((animal) => (
+                    <AnimalCard key={animal.id} animal={animal} />
+                ))}
+                </div>
+            ) : (
+                <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg">
+                    <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold">Nenhum animal encontrado</h3>
+                    <p className="text-muted-foreground mt-2">
+                        Tente ajustar seus filtros para encontrar seu novo amigo.
+                    </p>
+                </Card>
+            )
           )}
         </main>
       </div>

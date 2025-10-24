@@ -1,5 +1,5 @@
 export type Animal = {
-  id: string;
+  id?: string; // Firestore ID will be added on fetch
   name: string;
   species: 'Cachorro' | 'Gato' | 'Coelho';
   breed: string;
