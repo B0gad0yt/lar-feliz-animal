@@ -10,6 +10,8 @@ import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvide
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,12 +88,20 @@ export default function LoginPage() {
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
-            await setDoc(userDocRef, {
+            const newUser = {
                 uid: user.uid,
                 email: user.email,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
                 role: 'user'
+            };
+            setDoc(userDocRef, newUser).catch(async (serverError) => {
+                 const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: newUser,
+                });
+                errorEmitter.emit('permission-error', permissionError);
             });
         }
       }
@@ -99,8 +109,8 @@ export default function LoginPage() {
       toast({ title: 'Login com Google realizado com sucesso!' });
       router.push('/');
     } catch (error: any) {
-      // Don't show an error toast if the user closes the popup
       if (error.code === 'auth/popup-closed-by-user') {
+        setIsLoading(false);
         return;
       }
       console.error(error);
