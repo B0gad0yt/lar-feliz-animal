@@ -226,7 +226,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                         {healthFields.map((field, index) => (
                             <div key={field.id} className="flex items-center gap-2">
                                 <FormField control={form.control} name={`health.${index}`} render={({ field }) => (
-                                    <FormItem className="flex-grow"><FormControl><Input {...field} /></FormControl></FormItem>
+                                    <FormItem className="flex-grow"><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <Button type="button" variant="destructive" size="icon" onClick={() => removeHealth(index)}><Trash className="h-4 w-4" /></Button>
                             </div>
@@ -241,15 +241,15 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
                         {photoFields.map((field, index) => (
                             <div key={field.id} className="relative aspect-square">
-                                <Image src={field.value} alt={`Foto ${index + 1}`} layout="fill" className="rounded-md object-cover"/>
+                                <Image src={field.value} alt={`Foto ${index + 1}`} fill className="rounded-md object-cover"/>
                                 <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 z-10" onClick={() => removePhoto(index)}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
                         ))}
-                         <Button type="button" variant="outline" className="aspect-square flex items-center justify-center flex-col" onClick={() => fileInputRef.current?.click()}>
+                         <Button type="button" variant="outline" className="aspect-square flex items-center justify-center flex-col gap-2 p-2 text-center" onClick={() => fileInputRef.current?.click()}>
                             <Upload className="h-8 w-8" />
-                            <span>Adicionar</span>
+                            <span className="text-xs">Adicionar Fotos</span>
                         </Button>
                     </div>
                      <FormControl>

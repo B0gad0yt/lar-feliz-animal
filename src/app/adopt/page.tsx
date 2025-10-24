@@ -7,7 +7,7 @@ import type { Animal } from '@/lib/types';
 import { AnimalCard } from '@/components/animal-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent as SelectContentComponent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { SlidersHorizontal, PawPrint } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -68,7 +68,7 @@ export default function AdoptPage() {
         </p>
       </header>
       <div className="flex flex-col md:flex-row gap-8">
-        <aside className="w-full md:w-1/4">
+        <aside className="w-full md:w-1/4 lg:w-1/5">
           <Card className="p-4 bg-card/70 backdrop-blur-sm shadow-lg sticky top-24">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <SlidersHorizontal className="mr-2 h-5 w-5" />
@@ -90,12 +90,12 @@ export default function AdoptPage() {
                   <SelectTrigger id="species">
                     <SelectValue placeholder="Espécie" />
                   </SelectTrigger>
-                  <SelectContentComponent>
+                  <SelectContent>
                     <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="Cachorro">Cachorro</SelectItem>
                     <SelectItem value="Gato">Gato</SelectItem>
                     <SelectItem value="Coelho">Coelho</SelectItem>
-                  </SelectContentComponent>
+                  </SelectContent>
                 </Select>
               </div>
               <div>
@@ -104,12 +104,12 @@ export default function AdoptPage() {
                   <SelectTrigger id="size">
                     <SelectValue placeholder="Tamanho" />
                   </SelectTrigger>
-                  <SelectContentComponent>
+                  <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Pequeno">Pequeno</SelectItem>
                     <SelectItem value="Médio">Médio</SelectItem>
                     <SelectItem value="Grande">Grande</SelectItem>
-                  </SelectContentComponent>
+                  </SelectContent>
                 </Select>
               </div>
               <div>
@@ -118,17 +118,17 @@ export default function AdoptPage() {
                   <SelectTrigger id="gender">
                     <SelectValue placeholder="Sexo" />
                   </SelectTrigger>
-                  <SelectContentComponent>
+                  <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="Macho">Macho</SelectItem>
                     <SelectItem value="Fêmea">Fêmea</SelectItem>
-                  </SelectContentComponent>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
           </Card>
         </aside>
-        <main className="w-full md:w-3/4">
+        <main className="w-full md:w-3/4 lg:w-4/5">
           {animalsLoading ? renderSkeleton() : (
             filteredAnimals.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

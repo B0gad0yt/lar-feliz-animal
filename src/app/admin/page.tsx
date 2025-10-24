@@ -73,12 +73,12 @@ function AnimalsTab() {
   
   return (
     <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <CardTitle>Gerenciar Animais</CardTitle>
                 <CardDescription>Adicione, edite ou remova animais do sistema.</CardDescription>
             </div>
-            <Button asChild>
+            <Button asChild className="w-full md:w-auto">
                 <Link href="/admin/animals/new">
                     <PlusCircle className="mr-2 h-5 w-5" /> Adicionar Animal
                 </Link>
@@ -196,12 +196,12 @@ function SheltersTab() {
   
   return (
     <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <CardTitle>Gerenciar Abrigos</CardTitle>
                 <CardDescription>Adicione, edite ou remova abrigos parceiros.</CardDescription>
             </div>
-            <Button asChild>
+            <Button asChild className="w-full md:w-auto">
                 <Link href="/admin/shelters/new">
                     <PlusCircle className="mr-2 h-5 w-5" /> Adicionar Abrigo
                 </Link>
@@ -356,36 +356,40 @@ function SettingsTab() {
                   <FormDescription>Adicione ou remova os links que aparecem no rodapé.</FormDescription>
                   <div className="space-y-4 mt-2">
                     {fields.map((field, index) => (
-                      <div key={field.id} className="flex items-center gap-2 md:gap-4 p-4 border rounded-md flex-wrap md:flex-nowrap">
-                        <FormField
-                          control={form.control}
-                          name={`socialLinks.${index}.platform`}
-                          render={({ field }) => (
-                            <FormItem className="w-full md:w-1/3">
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                  <SelectItem value="Instagram">Instagram</SelectItem>
-                                  <SelectItem value="Twitter">Twitter</SelectItem>
-                                  <SelectItem value="Facebook">Facebook</SelectItem>
-                                  <SelectItem value="YouTube">YouTube</SelectItem>
-                                  <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                                  <SelectItem value="GitHub">GitHub</SelectItem>
-                                  <SelectItem value="TikTok">TikTok</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`socialLinks.${index}.url`}
-                          render={({ field }) => (
-                             <FormItem className="flex-grow w-full md:w-auto"><FormControl><Input placeholder="https://..." {...field} /></FormControl></FormItem>
-                          )}
-                        />
-                        <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)}>
+                      <div key={field.id} className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 p-4 border rounded-md">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full flex-grow">
+                          <FormField
+                            control={form.control}
+                            name={`socialLinks.${index}.platform`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl><SelectTrigger><SelectValue placeholder="Plataforma" /></SelectTrigger></FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="Instagram">Instagram</SelectItem>
+                                    <SelectItem value="Twitter">Twitter</SelectItem>
+                                    <SelectItem value="Facebook">Facebook</SelectItem>
+                                    <SelectItem value="YouTube">YouTube</SelectItem>
+                                    <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                                    <SelectItem value="GitHub">GitHub</SelectItem>
+                                    <SelectItem value="TikTok">TikTok</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`socialLinks.${index}.url`}
+                            render={({ field }) => (
+                              <FormItem><FormControl><Input placeholder="https://..." {...field} /></FormControl><FormMessage /></FormItem>
+                            )}
+                          />
+                        </div>
+                        <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="w-full md:w-auto mt-2 md:mt-0">
                           <Trash className="h-4 w-4" />
+                          <span className="md:hidden ml-2">Remover Link</span>
                         </Button>
                       </div>
                     ))}
@@ -424,7 +428,7 @@ export default function AdminPage() {
     }
 
     if (!user) {
-      setAuthStatus('unauthorized');
+      router.push('/login');
       return;
     }
     

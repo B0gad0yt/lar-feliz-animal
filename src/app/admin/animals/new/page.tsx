@@ -152,10 +152,10 @@ export default function NewAnimalPage() {
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <FormField control={form.control} name="species" render={({ field }) => (
-                    <FormItem><FormLabel>Espécie</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Espécie</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                  )}/>
                  <FormField control={form.control} name="gender" render={({ field }) => (
-                    <FormItem><FormLabel>Sexo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Sexo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                  )}/>
                  <FormField control={form.control} name="age" render={({ field }) => (
                     <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
@@ -163,7 +163,7 @@ export default function NewAnimalPage() {
                </div>
 
                 <FormField control={form.control} name="size" render={({ field }) => (
-                    <FormItem><FormLabel>Tamanho</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Tamanho</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )}/>
 
                 <FormField control={form.control} name="description" render={({ field }) => (
@@ -208,7 +208,7 @@ export default function NewAnimalPage() {
                         {healthFields.map((field, index) => (
                             <div key={field.id} className="flex items-center gap-2">
                                 <FormField control={form.control} name={`health.${index}`} render={({ field }) => (
-                                    <FormItem className="flex-grow"><FormControl><Input {...field} /></FormControl></FormItem>
+                                     <FormItem className="flex-grow"><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <Button type="button" variant="destructive" size="icon" onClick={() => removeHealth(index)}><Trash className="h-4 w-4" /></Button>
                             </div>
@@ -223,15 +223,15 @@ export default function NewAnimalPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
                         {photoFields.map((field, index) => (
                             <div key={field.id} className="relative aspect-square">
-                                <Image src={field.value} alt={`Foto ${index + 1}`} layout="fill" className="rounded-md object-cover"/>
+                                <Image src={field.value} alt={`Foto ${index + 1}`} fill className="rounded-md object-cover"/>
                                 <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 z-10" onClick={() => removePhoto(index)}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
                         ))}
-                         <Button type="button" variant="outline" className="aspect-square flex items-center justify-center flex-col" onClick={() => fileInputRef.current?.click()}>
+                         <Button type="button" variant="outline" className="aspect-square flex items-center justify-center flex-col gap-2 p-2 text-center" onClick={() => fileInputRef.current?.click()}>
                             <Upload className="h-8 w-8" />
-                            <span>Adicionar</span>
+                            <span className="text-xs">Adicionar Fotos</span>
                         </Button>
                     </div>
                      <FormControl>

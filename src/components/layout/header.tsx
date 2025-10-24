@@ -133,7 +133,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <Logo className="h-8 w-8 text-primary" />
-          <span className="font-bold font-headline text-xl">
+          <span className="hidden sm:inline-block font-bold font-headline text-xl">
             {siteConfig?.title || 'Lar Feliz Animal'}
           </span>
         </Link>
@@ -153,7 +153,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="bg-background/95 backdrop-blur-sm p-0">
-               <SheetTitle className="sr-only">Menu Principal</SheetTitle>
+                <SheetTitle className="sr-only">Menu Principal</SheetTitle>
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between p-4 border-b">
                    <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>

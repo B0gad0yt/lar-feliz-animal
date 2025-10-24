@@ -23,16 +23,16 @@ export default function Home() {
               data-ai-hint={heroImage.imageHint}
             />
           )}
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/50" />
         </div>
         <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-4">
-          <h1 className="text-4xl md:text-6xl font-headline font-bold drop-shadow-lg">
+          <h1 className="text-4xl md:text-6xl font-headline font-bold drop-shadow-lg text-center">
             Encontre seu amigo para sempre
           </h1>
-          <p className="mt-4 text-lg md:text-2xl max-w-2xl drop-shadow-md">
+          <p className="mt-4 text-lg md:text-2xl max-w-2xl drop-shadow-md text-center">
             Conectamos corações, um focinho de cada vez. Adote um pet e mude uma vida.
           </p>
-          <Button asChild size="lg" className="mt-8 font-bold text-lg">
+          <Button asChild size="lg" className="mt-8 font-bold text-lg py-6 px-8">
             <Link href="/adopt">Adote Agora</Link>
           </Button>
         </div>
