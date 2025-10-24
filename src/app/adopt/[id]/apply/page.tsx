@@ -1,10 +1,11 @@
 'use client';
 
-import { notFound, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { animals } from '@/lib/data';
+import { useUser } from '@/firebase'; // Importa o hook useUser
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -14,7 +15,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Heart } from 'lucide-react';
+import { Heart, LogIn } from 'lucide-react';
+import Link from 'next/link';
 
 const applicationSchema = z.object({
   fullName: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -32,6 +34,7 @@ const applicationSchema = z.object({
 export default function AdoptionApplicationPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, loading } = useUser(); // Usa o hook para obter o usuário
   const animal = animals.find((a) => a.id === params.id);
 
   const form = useForm<z.infer<typeof applicationSchema>>({
@@ -42,7 +45,42 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   });
 
   if (!animal) {
-    notFound();
+    return (
+        <div className="container mx-auto max-w-3xl py-12 px-4 text-center">
+            <h1 className="text-2xl font-bold">Animal não encontrado</h1>
+            <p className="mt-4">O animal que você está tentando adotar não existe.</p>
+            <Button asChild className="mt-4">
+                <Link href="/adopt">Ver outros animais</Link>
+            </Button>
+        </div>
+    )
+  }
+
+  // Se estiver carregando, mostra uma mensagem
+  if (loading) {
+    return <div className="container mx-auto text-center py-12">Carregando...</div>;
+  }
+
+  // Se o usuário não estiver logado, mostra o aviso
+  if (!user) {
+    return (
+      <div className="container mx-auto max-w-3xl py-12 px-4">
+        <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg text-center">
+          <CardHeader>
+            <CardTitle className="text-3xl font-headline">Acesso Necessário</CardTitle>
+            <CardDescription>Você precisa estar logado para adotar um animal.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Por favor, faça o login ou crie uma conta para continuar com o processo de adoção.</p>
+            <Button asChild className="mt-6">
+              <Link href="/login">
+                <LogIn className="mr-2 h-5 w-5" /> Fazer Login
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   function onSubmit(values: z.infer<typeof applicationSchema>) {

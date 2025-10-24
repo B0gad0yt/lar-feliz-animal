@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "A user of the application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user's unique ID." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "photoURL": { "type": "string", "description": "The URL of the user's profile picture." },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "The user's role." }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "animal": {
+      "title": "Animal",
+      "description": "An animal available for adoption.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "species": { "type": "string", "enum": ["Cachorro", "Gato", "Coelho"] },
+        "breed": { "type": "string" },
+        "age": { "type": "number" },
+        "size": { "type": "string", "enum": ["Pequeno", "Médio", "Grande"] },
+        "gender": { "type": "string", "enum": ["Macho", "Fêmea"] },
+        "description": { "type": "string" },
+        "story": { "type": "string" },
+        "personality": { "type": "array", "items": { "type": "string" } },
+        "health": { "type": "array", "items": { "type": "string" } },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "shelterId": { "type": "string" }
+      },
+      "required": ["name", "species", "breed", "age", "size", "gender", "shelterId"]
+    },
+    "shelter": {
+      "title": "Shelter",
+      "description": "An animal shelter.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "website": { "type": "string", "format": "uri" }
+      },
+      "required": ["name"]
+    },
+    "siteConfig": {
+        "title": "Site Configuration",
+        "description": "Global configuration for the site.",
+        "type": "object",
+        "properties": {
+            "title": { "type": "string", "description": "The main title of the website." },
+            "socialLinks": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "platform": { "type": "string", "enum": ["Instagram", "Twitter", "Facebook", "YouTube", "LinkedIn", "GitHub", "TikTok"] },
+                        "url": { "type": "string", "format": "uri" }
+                    },
+                    "required": ["platform", "url"]
+                }
+            }
+        }
+    }
+  },
+  "auth": {
+    "providers": ["email", "google.com"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Stores public information about a user."
+    },
+    "/animals/{animalId}": {
+      "schema": { "$ref": "#/entities/animal" },
+      "description": "Stores information about animals available for adoption."
+    },
+    "/shelters/{shelterId}": {
+        "schema": { "$ref": "#/entities/shelter" },
+        "description": "Stores information about partner shelters."
+    },
+    "/config/site": {
+        "schema": { "$ref": "#/entities/siteConfig" },
+        "description": "Stores global site configuration."
+    }
+  }
+}
