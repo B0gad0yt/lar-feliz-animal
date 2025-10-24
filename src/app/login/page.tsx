@@ -99,6 +99,10 @@ export default function LoginPage() {
       toast({ title: 'Login com Google realizado com sucesso!' });
       router.push('/');
     } catch (error: any) {
+      // Don't show an error toast if the user closes the popup
+      if (error.code === 'auth/popup-closed-by-user') {
+        return;
+      }
       console.error(error);
       toast({
         variant: 'destructive',
