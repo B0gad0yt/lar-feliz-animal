@@ -9,6 +9,7 @@ import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const navItems = [
   { href: '/', label: 'Início' },
@@ -54,6 +55,7 @@ export function Header() {
           ))}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-4">
+           <ThemeToggle />
           <Button asChild className="hidden md:flex">
             <Link href="/adopt">
               <PawPrint className="mr-2 h-4 w-4" /> Adotar
