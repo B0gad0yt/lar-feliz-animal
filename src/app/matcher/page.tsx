@@ -45,6 +45,7 @@ export default function MatcherPage() {
   const form = useForm<z.infer<typeof matcherSchema>>({
     resolver: zodResolver(matcherSchema),
     defaultValues: {
+      family: '',
       temperament: [],
       preferences: { species: 'Qualquer', size: 'Qualquer', age: 'Qualquer' },
     },
