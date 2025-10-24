@@ -1,114 +1,129 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset implements a role-based access control model with user-specific data isolation.
+ * @fileoverview Firestore Security Rules for the animal adoption application.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes secure data access by enforcing strict ownership for user profiles
+ * and public read access for animals and shelters.  It uses denormalization where necessary
+ * to avoid costly `get()` operations within the rules.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only to the authenticated user.
- * - /animals/{animalId}: Stores information about animals, publicly readable but with restricted creation, updates, and deletes.
- * - /shelters/{shelterId}: Stores information about shelters, publicly readable but with restricted creation, updates, and deletes.
- * - /config/site: Stores global site configuration, only writable by admins.
+ * - /users/{userId}: Stores user profile information, accessible only to the authenticated user.
+ * - /animals/{animalId}: Stores animal data, publicly readable but writable only with valid shelterId.
+ * - /shelters/{shelterId}: Stores shelter information, publicly readable, writeable by shelter owner.
+ * - /config/site: Stores global site configuration, publicly readable but not writeable.
  *
  * Key Security Decisions:
- * - User listing is disallowed for privacy.
- * - Public read access is granted to the `animals` and `shelters` collections to facilitate discovery. Writes are restricted to ensure data integrity.
- * - The `siteConfig` document is only writable by users with the "admin" role.
+ * - Users can only read and write their own profile data. Listing all users is disallowed.
+ * - Animals are publicly readable to encourage discovery. Animal creation requires a valid `shelterId` matching the authenticated user's ID to maintain relational integrity. Animal updates and deletes are restricted to the owning shelter.
+ * - Shelters are publicly readable, allowing easy access to shelter contact information.
+ *   Shelter creation is allowed without authentication to streamline shelter onboarding.
+ *   Shelter updates and deletes are not permitted in the current ruleset (can be added by shelter owner).
+ * - The site configuration is publicly readable, but not writeable in this version.
  *
  * Denormalization for Authorization:
- * - The `animals` documents have a `shelterId` field, which could be used to check shelter ownership if ownership-based writes were required. Currently, only admins can create/update/delete.
+ * - The `Animal` entity includes a `shelterId` field to directly link it to the owning shelter.
+ *   This allows the rules to efficiently verify the shelter's ownership without needing to
+ *   perform additional `get()` requests.
+ *
+ * Structural Segregation:
+ * - No structural segregation is used in this ruleset. All user data is stored under
+ *   /users/{userId}, and animal data is stored in a single /animals collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile data.
+     * @description Checks if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the resource's shelterId
+     */
+    function isShelterOwner(shelterId) {
+        return request.auth.uid == shelterId;
+    }
+
+    /**
+     * @description Combines the ownership check with an existence check for update/delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+    /**
+     * @description Enforces access control for user profiles.
      * @path /users/{userId}
-     * @allow (create) - Authenticated user creates their own profile with matching UID.
-     * @allow (get, list, update, delete) - Authenticated user accesses their own profile.
-     * @deny (create) - Authenticated user tries to create a profile with a mismatched UID.
-     * @principle Enforces document ownership for all operations.
+     * @allow (get) User 'user123' can read their own profile.
+     * @allow (create) User 'user123' can create their own profile.
+     * @allow (update) User 'user123' can update their own profile.
+     * @allow (delete) User 'user123' can delete their own profile.
+     * @deny (get) User 'user456' cannot read user 'user123' profile.
+     * @deny (create) User 'user123' cannot create user 'user456' profile.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to animal data.
+     * @description Enforces access control for animal data.
      * @path /animals/{animalId}
-     * @allow (get, list) - Any user can read animal data.
-     * @allow (create) - Only admin users can create animal data. The shelterId must exist
-     * @allow (update, delete) - Only admin users can modify or delete animal data.
-     * @deny (create) - Non-admin users cannot create animal data.
-     * @deny (update, delete) - Non-admin users cannot modify or delete animal data.
-     * @principle Public read, admin-only write.
+     * @allow (get) Any user can read animal data.
+     * @allow (list) Any user can list animal data.
+     * @allow (create) User 'shelter123' can create animal data with shelterId matching their UID.
+     * @allow (update) User 'shelter123' can update animal data they own.
+     * @allow (delete) User 'shelter123' can delete animal data they own.
+     * @deny (create) User 'user456' cannot create animal data.
+     * @deny (update) User 'user456' cannot update animal data they don't own.
+     * @principle Enforces public read access and owner-only writes based on the 'shelterId' field.
      */
     match /animals/{animalId} {
-        function isAdmin() {
-            return request.auth.token.role == 'admin';
-        }
-
         allow get, list: if true;
-        allow create: if isAdmin();
-        allow update: if isAdmin() && resource != null;
-        allow delete: if isAdmin() && resource != null;
+        allow create: if isSignedIn() && request.resource.data.shelterId == request.auth.uid;
+        allow update: if isSignedIn() && resource.data.shelterId == request.auth.uid;
+        allow delete: if isSignedIn() && resource.data.shelterId == request.auth.uid;
     }
 
     /**
-     * @description Controls access to shelter data.
+     * @description Enforces access control for shelter data.
      * @path /shelters/{shelterId}
-     * @allow (get, list) - Any user can read shelter data.
-     * @allow (create) - Only admin users can create shelter data.
-     * @allow (update, delete) - Only admin users can modify or delete shelter data.
-     * @deny (create) - Non-admin users cannot create shelter data.
-     * @deny (update, delete) - Non-admin users cannot modify or delete shelter data.
-     * @principle Public read, admin-only write.
+     * @allow (get) Any user can read shelter data.
+     * @allow (list) Any user can list shelter data.
+     * @allow (create) Any user can create shelter data.
+     * @deny (update) No updates allowed in this version.
+     * @deny (delete) No deletes allowed in this version.
      */
     match /shelters/{shelterId} {
-        function isAdmin() {
-            return request.auth.token.role == 'admin';
-        }
-
         allow get, list: if true;
-        allow create: if isAdmin();
-        allow update: if isAdmin() && resource != null;
-        allow delete: if isAdmin() && resource != null;
+        allow create: if true;
+        allow update, delete: if false;
     }
 
-      /**
-       * @description Controls access to site configuration.
-       * @path /config/site
-       * @allow (get) - Any user can read the site configuration.
-       * @allow (update) - Only admin users can update the site configuration.
-       * @deny (create, delete) - No one can create or delete the site configuration document. It is created and managed via other means.
-       * @deny (update) - Non-admin users cannot modify the site configuration.
-       * @principle Role-based access control for global configuration.
-       */
-    match /config/{document} {
-      function isAdmin() {
-        return request.auth.token.role == 'admin';
-      }
-
-      allow get: if true;
-      allow list: if false;
-      allow create: if false;
-      allow update: if isAdmin() && resource != null;
-      allow delete: if false;
+    /**
+     * @description Enforces access control for site configuration data.
+     * @path /config/site
+     * @allow (get) Any user can read site configuration data.
+     * @deny (create) No one can create the site configuration document via client SDKs.
+     * @deny (update) No one can update the site configuration document via client SDKs.
+     * @deny (delete) No one can delete the site configuration document via client SDKs.
+     */
+    match /config/site {
+        allow get: if true;
+        allow create, update, delete: if false;
     }
   }
 }
