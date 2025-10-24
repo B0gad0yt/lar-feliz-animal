@@ -30,7 +30,7 @@ function AdminDashboard() {
     firestore ? collection(firestore, 'animals') : null
   );
 
-  const handleDelete = async (animalId: string) => {
+  const handleDelete = (animalId: string) => {
     if (!firestore) return;
     if (confirm('Tem certeza que deseja excluir este animal?')) {
         const docRef = doc(firestore, 'animals', animalId);
