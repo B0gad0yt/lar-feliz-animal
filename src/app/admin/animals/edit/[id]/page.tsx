@@ -91,9 +91,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
   
-  // Acesso é verificado pelas regras do Firestore. Um toast de erro aparecerá se o usuário não for admin.
-  // Redirecionamos se o usuário não estiver logado.
-  if (!user) {
+  if (!user && !userLoading) {
     router.push('/login');
     return null;
   }

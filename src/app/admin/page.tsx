@@ -157,8 +157,14 @@ export default function AdminPage() {
         router.push('/');
       }
     } else if (!appUserLoading && user) {
-      // User is logged in but doesn't have an appUser doc or role is not admin
-      router.push('/');
+        // This case handles when a user is authenticated but their document in 'users' collection
+        // might not exist or doesn't have a 'role' field. This is a potential state
+        // during initial user creation before the Firestore document is written.
+        // We can't immediately deny access, as the document might still be propagating.
+        // However, if we are NOT loading and still have no appUser, it's safer to redirect.
+        // The security rules are the ultimate authority.
+        // A simple redirect is a good UX measure.
+         router.push('/');
     }
   }, [appUser, appUserLoading, user, router]);
   
