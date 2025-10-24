@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 
 import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUser, useDoc, useFirestore } from '@/firebase';
@@ -133,7 +133,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <Logo className="h-8 w-8 text-primary" />
-          <span className="hidden font-bold sm:inline-block font-headline text-xl">
+          <span className="font-bold font-headline text-xl">
             {siteConfig?.title || 'Lar Feliz Animal'}
           </span>
         </Link>
@@ -153,6 +153,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="bg-background/95 backdrop-blur-sm p-0">
+               <SheetTitle className="sr-only">Menu Principal</SheetTitle>
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between p-4 border-b">
                    <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>
