@@ -7,6 +7,7 @@ import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
+import React from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,14 +20,9 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Animal, User as AppUser } from '@/lib/types';
 
 
-export default function AdminPage() {
-  const { user } = useUser();
-  const router = useRouter();
+function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
-
-  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
-  const { data: appUser, loading: userLoading } = useDoc<AppUser>(userDocRef);
 
   const { data: animals, loading: animalsLoading } = useCollection<Animal>(
     firestore ? collection(firestore, 'animals') : null
@@ -51,13 +47,107 @@ export default function AdminPage() {
     }
   };
 
+  if (animalsLoading) {
+     return <div className="text-center">Carregando animais...</div>;
+  }
+  
+  return (
+    <main className="md:col-span-3">
+        <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Gerenciar Animais</CardTitle>
+                    <CardDescription>Adicione, edite ou remova animais do sistema.</CardDescription>
+                </div>
+                <Button asChild>
+                    <Link href="/admin/animals/new">
+                        <PlusCircle className="mr-2 h-5 w-5" /> Adicionar Animal
+                    </Link>
+                </Button>
+            </CardHeader>
+            <CardContent>
+               <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="hidden w-[100px] sm:table-cell">
+                                <span className="sr-only">Imagem</span>
+                            </TableHead>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Espécie</TableHead>
+                            <TableHead className="hidden md:table-cell">Idade</TableHead>
+                            <TableHead className="hidden md:table-cell">Status</TableHead>
+                            <TableHead>
+                                <span className="sr-only">Ações</span>
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {animals && animals.map((animal) => {
+                            const image = PlaceHolderImages.find(p => p.id === animal.photos[0]);
+                            return (
+                                <TableRow key={animal.id}>
+                                    <TableCell className="hidden sm:table-cell">
+                                        {image && <Image
+                                        alt={animal.name}
+                                        className="aspect-square rounded-md object-cover"
+                                        height="64"
+                                        src={image.imageUrl}
+                                        width="64"
+                                        />}
+                                    </TableCell>
+                                    <TableCell className="font-medium">{animal.name}</TableCell>
+                                    <TableCell>{animal.species}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        <Badge variant="outline">Disponível</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                                <span className="sr-only">Toggle menu</span>
+                                            </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
+                                                    <Edit className="mr-2 h-4 w-4" />Editar
+                                                </Link></DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDelete(animal.id as string)} className="text-destructive cursor-pointer">
+                                                    <Trash className="mr-2 h-4 w-4" />Excluir
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    </main>
+  )
+}
 
-  if (userLoading || animalsLoading) {
+
+export default function AdminPage() {
+  const { user, loading: userLoading } = useUser();
+  const router = useRouter();
+  const firestore = useFirestore();
+
+  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
+  const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
+
+  if (userLoading || appUserLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
 
-  // Proper access control should be done via Firestore security rules and backend logic
-  // This client-side check is for UI purposes only.
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
+  
   if (appUser?.role !== 'admin') {
      return (
       <div className="container mx-auto max-w-3xl py-12 px-4">
@@ -105,82 +195,9 @@ export default function AdminPage() {
             </Button>
           </nav>
         </aside>
+        
+        <AdminDashboard />
 
-        <main className="md:col-span-3">
-            <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Gerenciar Animais</CardTitle>
-                        <CardDescription>Adicione, edite ou remova animais do sistema.</CardDescription>
-                    </div>
-                    <Button asChild>
-                        <Link href="/admin/animals/new">
-                            <PlusCircle className="mr-2 h-5 w-5" /> Adicionar Animal
-                        </Link>
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                   <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="hidden w-[100px] sm:table-cell">
-                                    <span className="sr-only">Imagem</span>
-                                </TableHead>
-                                <TableHead>Nome</TableHead>
-                                <TableHead>Espécie</TableHead>
-                                <TableHead className="hidden md:table-cell">Idade</TableHead>
-                                <TableHead className="hidden md:table-cell">Status</TableHead>
-                                <TableHead>
-                                    <span className="sr-only">Ações</span>
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {animals && animals.map((animal) => {
-                                const image = PlaceHolderImages.find(p => p.id === animal.photos[0]);
-                                return (
-                                    <TableRow key={animal.id}>
-                                        <TableCell className="hidden sm:table-cell">
-                                            {image && <Image
-                                            alt={animal.name}
-                                            className="aspect-square rounded-md object-cover"
-                                            height="64"
-                                            src={image.imageUrl}
-                                            width="64"
-                                            />}
-                                        </TableCell>
-                                        <TableCell className="font-medium">{animal.name}</TableCell>
-                                        <TableCell>{animal.species}</TableCell>
-                                        <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
-                                        <TableCell className="hidden md:table-cell">
-                                            <Badge variant="outline">Disponível</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Toggle menu</span>
-                                                </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
-                                                        <Edit className="mr-2 h-4 w-4" />Editar
-                                                    </Link></DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDelete(animal.id as string)} className="text-destructive cursor-pointer">
-                                                        <Trash className="mr-2 h-4 w-4" />Excluir
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </main>
        </div>
     </div>
   );
