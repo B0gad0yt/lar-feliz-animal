@@ -8,6 +8,8 @@ import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
 import React from 'react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,19 +33,18 @@ function AdminDashboard() {
   const handleDelete = async (animalId: string) => {
     if (!firestore) return;
     if (confirm('Tem certeza que deseja excluir este animal?')) {
-      try {
-        await deleteDoc(doc(firestore, 'animals', animalId));
-        toast({
-          title: 'Animal excluído com sucesso!',
+        const docRef = doc(firestore, 'animals', animalId);
+        deleteDoc(docRef).then(() => {
+            toast({
+                title: 'Animal excluído com sucesso!',
+            });
+        }).catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao excluir animal.',
-          description: 'Ocorreu um erro. Tente novamente.',
-        });
-        console.error('Error deleting animal:', error);
-      }
     }
   };
 

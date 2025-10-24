@@ -7,6 +7,8 @@ import * as z from 'zod';
 import { useFirestore, useUser, useDoc } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -65,24 +67,24 @@ export default function NewAnimalPage() {
 
   const onSubmit = async (values: z.infer<typeof animalSchema>) => {
     if (!firestore) return;
-
-    try {
-      await addDoc(collection(firestore, 'animals'), {
-          ...values,
-          createdAt: serverTimestamp(),
-      });
-      toast({
-        title: 'Animal adicionado com sucesso!',
-      });
-      router.push('/admin');
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao adicionar animal.',
-        description: 'Ocorreu um erro. Tente novamente.',
-      });
-    }
+    const collectionRef = collection(firestore, 'animals');
+    
+    addDoc(collectionRef, {
+        ...values,
+        createdAt: serverTimestamp(),
+    }).then(() => {
+        toast({
+            title: 'Animal adicionado com sucesso!',
+        });
+        router.push('/admin');
+    }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: collectionRef.path,
+            operation: 'create',
+            requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
   
   if (userLoading) {

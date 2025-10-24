@@ -8,6 +8,8 @@ import * as z from 'zod';
 import { useFirestore, useDoc, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -70,24 +72,23 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
 
   const onSubmit = async (values: z.infer<typeof animalSchema>) => {
     if (!firestore || !animalRef) return;
-
-    try {
-      await setDoc(animalRef, {
-          ...values,
-          updatedAt: serverTimestamp(),
-      }, { merge: true });
-      toast({
-        title: 'Animal atualizado com sucesso!',
-      });
-      router.push('/admin');
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao atualizar animal.',
-        description: 'Ocorreu um erro. Tente novamente.',
-      });
-    }
+    
+    setDoc(animalRef, {
+        ...values,
+        updatedAt: serverTimestamp(),
+    }, { merge: true }).then(() => {
+        toast({
+            title: 'Animal atualizado com sucesso!',
+        });
+        router.push('/admin');
+    }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: animalRef.path,
+            operation: 'update',
+            requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
   
   if (userLoading || animalLoading) {
