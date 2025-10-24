@@ -13,7 +13,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useUser, useDoc, useFirestore } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
-import type { User as AppUser } from '@/lib/types';
+import type { User as AppUser, SiteConfig } from '@/lib/types';
 
 
 import {
@@ -44,6 +44,9 @@ export function Header() {
   
   const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: appUser } = useDoc<AppUser>(userDocRef);
+
+  const configRef = useMemo(() => firestore ? doc(firestore, 'config', 'site') : null, [firestore]);
+  const { data: siteConfig } = useDoc<SiteConfig>(configRef);
   
   const isAdmin = appUser?.role === 'admin';
 
@@ -131,7 +134,7 @@ export function Header() {
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <Logo className="h-8 w-8 text-primary" />
           <span className="hidden font-bold sm:inline-block font-headline text-xl">
-            Lar Feliz Animal
+            {siteConfig?.title || 'Lar Feliz Animal'}
           </span>
         </Link>
         <nav className="hidden md:flex flex-1 items-center space-x-6 text-sm font-medium">
@@ -154,7 +157,7 @@ export function Header() {
                 <div className="flex items-center justify-between p-4 border-b">
                    <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>
                       <Logo className="h-8 w-8 text-primary" />
-                      <span className="font-bold font-headline text-lg">Lar Feliz Animal</span>
+                      <span className="font-bold font-headline text-lg">{siteConfig?.title || 'Lar Feliz Animal'}</span>
                     </Link>
                 </div>
                 <nav className="flex flex-col space-y-4 p-4 text-lg">

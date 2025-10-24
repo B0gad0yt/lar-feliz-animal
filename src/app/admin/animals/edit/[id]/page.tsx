@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -122,7 +122,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
         <CardHeader>
           <CardTitle className="text-3xl md:text-4xl font-headline">Editar Animal</CardTitle>
           <CardDescription>
-            Atualize as informações de <span className="font-bold text-primary">{animal?.name}</span>.
+            Atualize as informações de <span className="font-bold text-primary">{form.getValues('name')}</span>.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -175,7 +175,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                                         checked={field.value?.includes(item.id)}
                                         onCheckedChange={(checked) => {
                                             return checked
-                                            ? field.onChange([...field.value, item.id])
+                                            ? field.onChange([...(field.value || []), item.id])
                                             : field.onChange(field.value?.filter((value) => value !== item.id))
                                         }}
                                     />

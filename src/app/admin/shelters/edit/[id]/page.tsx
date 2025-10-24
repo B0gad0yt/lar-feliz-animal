@@ -101,7 +101,7 @@ export default function EditShelterPage({ params }: { params: { id: string } }) 
         <CardHeader>
           <CardTitle className="text-3xl md:text-4xl font-headline">Editar Abrigo</CardTitle>
           <CardDescription>
-            Atualize as informações de <span className="font-bold text-primary">{shelter?.name}</span>.
+            Atualize as informações de <span className="font-bold text-primary">{form.getValues('name')}</span>.
           </CardDescription>
         </CardHeader>
         <CardContent>
