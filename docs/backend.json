@@ -44,7 +44,7 @@
         "email": { "type": "string", "format": "email" },
         "website": { "type": "string", "format": "uri" }
       },
-      "required": ["name"]
+      "required": ["name", "address", "phone", "email", "website"]
     },
     "siteConfig": {
         "title": "Site Configuration",
@@ -54,6 +54,7 @@
             "title": { "type": "string", "description": "The main title of the website." },
             "socialLinks": {
                 "type": "array",
+                "description": "A list of social media links.",
                 "items": {
                     "type": "object",
                     "properties": {

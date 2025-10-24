@@ -15,7 +15,7 @@ export type Animal = {
 };
 
 export type Shelter = {
-  id: string;
+  id?: string;
   name: string;
   address: string;
   phone: string;
@@ -30,3 +30,14 @@ export type User = {
     photoURL: string | null;
     role: 'user' | 'admin';
 };
+
+export type SocialLink = {
+  platform: "Instagram" | "Twitter" | "Facebook" | "YouTube" | "LinkedIn" | "GitHub" | "TikTok";
+  url: string;
+}
+
+export type SiteConfig = {
+    id?: string;
+    title: string;
+    socialLinks: SocialLink[];
+}
