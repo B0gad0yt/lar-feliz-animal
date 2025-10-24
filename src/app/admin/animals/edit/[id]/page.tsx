@@ -51,9 +51,18 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const form = useForm<z.infer<typeof animalSchema>>({
     resolver: zodResolver(animalSchema),
     defaultValues: {
+      name: '',
+      species: undefined,
+      breed: '',
+      age: 0,
+      size: undefined,
+      gender: undefined,
+      description: '',
+      story: '',
       personality: [],
       health: [],
       photos: [],
+      shelterId: '',
     }
   });
 
@@ -131,10 +140,10 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <FormField control={form.control} name="species" render={({ field }) => (
-                    <FormItem><FormLabel>Espécie</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Espécie</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                  )}/>
                  <FormField control={form.control} name="gender" render={({ field }) => (
-                    <FormItem><FormLabel>Sexo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Sexo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                  )}/>
                  <FormField control={form.control} name="age" render={({ field }) => (
                     <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
@@ -142,7 +151,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                </div>
 
                 <FormField control={form.control} name="size" render={({ field }) => (
-                    <FormItem><FormLabel>Tamanho</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Tamanho</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Pequeno">Pequeno</SelectItem><SelectItem value="Médio">Médio</SelectItem><SelectItem value="Grande">Grande</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )}/>
 
                 <FormField control={form.control} name="description" render={({ field }) => (

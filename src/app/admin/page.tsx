@@ -20,6 +20,17 @@ import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAl
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Animal, User as AppUser } from '@/lib/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 
 function AdminDashboard() {
@@ -31,20 +42,18 @@ function AdminDashboard() {
 
   const handleDelete = (animalId: string) => {
     if (!firestore) return;
-    if (confirm('Tem certeza que deseja excluir este animal?')) {
-        const docRef = doc(firestore, 'animals', animalId);
-        deleteDoc(docRef).then(() => {
-            toast({
-                title: 'Animal excluído com sucesso!',
-            });
-        }).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', permissionError);
+    const docRef = doc(firestore, 'animals', animalId);
+    deleteDoc(docRef).then(() => {
+        toast({
+            title: 'Animal excluído com sucesso!',
         });
-    }
+    }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   if (animalsLoading) {
@@ -102,22 +111,39 @@ function AdminDashboard() {
                                         <Badge variant="outline">Disponível</Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                                <span className="sr-only">Toggle menu</span>
-                                            </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
-                                                    <Edit className="mr-2 h-4 w-4" />Editar
-                                                </Link></DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleDelete(animal.id as string)} className="text-destructive cursor-pointer">
-                                                    <Trash className="mr-2 h-4 w-4" />Excluir
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        <AlertDialog>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                    <span className="sr-only">Toggle menu</span>
+                                                </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
+                                                        <Edit className="mr-2 h-4 w-4" />Editar
+                                                    </Link></DropdownMenuItem>
+                                                    <AlertDialogTrigger asChild>
+                                                        <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                                                            <Trash className="mr-2 h-4 w-4" />Excluir
+                                                        </DropdownMenuItem>
+                                                    </AlertDialogTrigger>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Essa ação não pode ser desfeita. Isso excluirá permanentemente o
+                                                        animal de nossos servidores.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(animal.id as string)}>Continuar</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </TableCell>
                                 </TableRow>
                             );
@@ -142,20 +168,20 @@ export default function AdminPage() {
   const [authStatus, setAuthStatus] = useState<'verifying' | 'authorized' | 'unauthorized'>('verifying');
 
   useEffect(() => {
-    // Não faça nada até que ambos os hooks de dados terminem de carregar.
+    // Don't do anything until both data hooks are done loading.
     if (userLoading || appUserLoading) {
       setAuthStatus('verifying');
       return;
     }
 
-    // Se não houver usuário logado ou se o perfil do usuário não existir no Firestore
-    // ou se o papel do usuário não for 'admin', o acesso é negado.
+    // If there is no logged in user, or if the user profile does not exist in Firestore,
+    // or if the user's role is not 'admin', then access is denied.
     if (!user || !appUser || appUser.role !== 'admin') {
       setAuthStatus('unauthorized');
       return;
     }
-
-    // Se todas as verificações passarem, o usuário é um administrador autorizado.
+    
+    // If all checks pass, the user is an authorized admin.
     setAuthStatus('authorized');
 
   }, [user, userLoading, appUser, appUserLoading]);
@@ -191,7 +217,7 @@ export default function AdminPage() {
       );
   }
 
-  // Apenas renderiza o painel se autorizado
+  // Only render the dashboard if authorized
   return (
     <div className="container mx-auto py-12 px-4">
        <div className="flex justify-between items-center mb-8">
@@ -206,11 +232,11 @@ export default function AdminPage() {
               <Bone className="mr-2 h-5 w-5" />
               Animais
             </Button>
-            <Button variant="ghost" className="justify-start text-lg" disabled>
+            <Button variant="ghost" className="justify-start text-lg">
               <Home className="mr-2 h-5 w-5" />
               Abrigos
             </Button>
-             <Button variant="ghost" className="justify-start text-lg" disabled>
+             <Button variant="ghost" className="justify-start text-lg">
               <Settings className="mr-2 h-5 w-5" />
               Configurações
             </Button>
