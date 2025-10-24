@@ -10,8 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { useUser } from '@/firebase';
-import { getAuth } from 'firebase/auth';
+import { useUser, useDoc, useFirestore } from '@/firebase';
+import { getAuth, signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
+import type { User as AppUser } from '@/lib/types';
+
 
 import {
   DropdownMenu,
@@ -36,13 +39,16 @@ export function Header() {
   const pathname = usePathname();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const { user, loading } = useUser();
+  const firestore = useFirestore();
   const auth = getAuth();
   
-  // This is a placeholder for actual admin logic
-  const isAdmin = user && user.uid === 'REPLACE_WITH_ACTUAL_ADMIN_UID';
+  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
+  const { data: appUser } = useDoc<AppUser>(userDocRef);
+  
+  const isAdmin = appUser?.role === 'admin';
 
   const handleSignOut = () => {
-    auth.signOut();
+    signOut(auth);
   };
 
   const NavLink = ({ href, label, className }: { href: string; label: string; className?: string }) => {

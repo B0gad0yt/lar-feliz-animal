@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash, ArrowLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
-import type { Animal } from '@/lib/types';
+import type { Animal, User as AppUser } from '@/lib/types';
 
 
 const animalSchema = z.object({
@@ -42,8 +42,10 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user, loading: userLoading } = useUser();
-  const adminUid = 'REPLACE_WITH_ACTUAL_ADMIN_UID';
+  const { user } = useUser();
+  
+  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
+  const { data: appUser, loading: userLoading } = useDoc<AppUser>(userDocRef);
 
   const animalRef = firestore ? doc(firestore, 'animals', params.id) : null;
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
@@ -92,7 +94,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
 
-  if (!user || user.uid !== adminUid) {
+  if (appUser?.role !== 'admin') {
      return (
       <div className="container mx-auto max-w-3xl py-12 px-4">
         <Card className="text-center bg-card/70 backdrop-blur-sm border-destructive/50 shadow-lg">

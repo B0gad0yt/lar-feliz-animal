@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@/firebase';
+import { useUser, useDoc } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useCollection } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
@@ -16,17 +16,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Shield, Home, Bone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Animal } from '@/lib/types';
+import type { Animal, User as AppUser } from '@/lib/types';
 
 
 export default function AdminPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // TODO: Implement proper role-based access control. For now, we'll check against a hardcoded admin UID.
-  const adminUid = 'REPLACE_WITH_ACTUAL_ADMIN_UID'; // This should come from a secure source
+  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
+  const { data: appUser, loading: userLoading } = useDoc<AppUser>(userDocRef);
 
   const { data: animals, loading: animalsLoading } = useCollection<Animal>(
     firestore ? collection(firestore, 'animals') : null
@@ -58,7 +58,7 @@ export default function AdminPage() {
 
   // Proper access control should be done via Firestore security rules and backend logic
   // This client-side check is for UI purposes only.
-  if (!user || user.uid !== adminUid) {
+  if (appUser?.role !== 'admin') {
      return (
       <div className="container mx-auto max-w-3xl py-12 px-4">
         <Card className="text-center bg-card/70 backdrop-blur-sm border-destructive/50 shadow-lg">

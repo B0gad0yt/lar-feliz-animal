@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useDoc } from '@/firebase';
+import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash, ArrowLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
+import type { User as AppUser } from '@/lib/types';
+
 
 const animalSchema = z.object({
   name: z.string().min(2, 'Nome é obrigatório.'),
@@ -39,8 +41,9 @@ export default function NewAnimalPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user, loading: userLoading } = useUser();
-  const adminUid = 'REPLACE_WITH_ACTUAL_ADMIN_UID';
+  const { user } = useUser();
+  const userDocRef = firestore && user ? doc(firestore, 'users', user.uid) : null;
+  const { data: appUser, loading: userLoading } = useDoc<AppUser>(userDocRef);
 
   const form = useForm<z.infer<typeof animalSchema>>({
     resolver: zodResolver(animalSchema),
@@ -86,7 +89,7 @@ export default function NewAnimalPage() {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
 
-  if (!user || user.uid !== adminUid) {
+  if (appUser?.role !== 'admin') {
      return (
       <div className="container mx-auto max-w-3xl py-12 px-4">
         <Card className="text-center bg-card/70 backdrop-blur-sm border-destructive/50 shadow-lg">
