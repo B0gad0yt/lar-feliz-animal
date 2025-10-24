@@ -140,33 +140,35 @@ export default function AdminPage() {
   const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
 
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
-    // Se o carregamento do usuário de autenticação terminou e não há usuário, redirecione para o login.
-    if (!userLoading && !user) {
+    // Só tomar uma decisão quando ambos os carregamentos terminarem.
+    if (userLoading || appUserLoading) {
+      return;
+    }
+
+    // Se o carregamento terminou, paramos de verificar.
+    setIsVerifying(false);
+
+    // Se não há usuário autenticado, redireciona para login.
+    if (!user) {
       router.push('/login');
       return;
     }
 
-    // Se o carregamento do usuário do Firestore terminou...
-    if (!appUserLoading && user) {
-        // Se o usuário do app existe...
-        if (appUser) {
-            // Se ele é admin, autorize.
-            if (appUser.role === 'admin') {
-                setIsAuthorized(true);
-            } else {
-                // Se não é admin, redirecione para o início.
-                router.push('/');
-            }
-        } else {
-            // Se o usuário do app não existe no Firestore, ele não é admin, redirecione.
-            router.push('/');
-        }
+    // Se o usuário está autenticado, mas seu perfil não existe ou não é admin, redireciona para a home.
+    if (!appUser || appUser.role !== 'admin') {
+      router.push('/');
+      return;
     }
+
+    // Se passou por todas as verificações, o usuário é um admin autorizado.
+    setIsAuthorized(true);
+
   }, [user, userLoading, appUser, appUserLoading, router]);
   
-  if (userLoading || appUserLoading || !isAuthorized) {
+  if (isVerifying || !isAuthorized) {
     return <div className="container mx-auto text-center py-12">Verificando autorização...</div>;
   }
 
