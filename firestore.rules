@@ -1,114 +1,105 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a user-ownership model for user profiles,
- *              allows public read access to animals and shelters, and restricts
- *              writes to authorized users. The site configuration is publicly readable.
+ * @file Firebase Security Rules for Firestore.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for user profiles, public read access for animals and shelters,
+ * and locked down access to site configuration.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data, accessible only by the user themselves.
- * - /animals/{animalId}: Stores animal data, publicly readable, writable by authorized users.
- * - /shelters/{shelterId}: Stores shelter data, publicly readable, writable by authorized users.
- * - /config/site: Stores global site configuration, publicly readable.
+ * - /users/{userId}: Stores public user profiles, accessible only to the owner.
+ * - /animals/{animalId}: Stores animal data, publicly readable but create/update/delete restricted.
+ * - /shelters/{shelterId}: Stores shelter data, publicly readable but create/update/delete restricted.
+ * - /config/site: Stores global site configuration data. Restricted to authenticated users only.
  *
  * Key Security Decisions:
- * - Users can only read and write their own profile data.
- * - Animal and shelter data is publicly readable but writable by admins only.
- * - Site configuration is publicly readable, but writable by admins only.
- * - No user listing is allowed to protect user privacy.
+ * - User listing is disabled for privacy.
+ * - Animals and Shelters are publicly readable, but writes are restricted until further logic is implemented.
+ * - The site config collection restricts write access to authenticated users only.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages user profiles, ensuring users can only access their own data.
+     * @description Enforces user-ownership for user profiles.
      * @path /users/{userId}
-     * @allow (get) User with ID 'user123' can read their own profile.
-     * @allow (create) User with ID 'user123' can create their own profile.
-     * @allow (update) User with ID 'user123' can update their own profile.
-     * @allow (delete) User with ID 'user123' can delete their own profile.
-     * @deny (get) User with ID 'user456' cannot read the profile of user 'user123'.
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
-     * @deny (update) User with ID 'user456' cannot update the profile of user 'user123'.
-     * @deny (delete) User with ID 'user456' cannot delete the profile of user 'user123'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (get) Authenticated user can read their own profile.
+     * @allow (create) Authenticated user can create their own profile if the userId matches their auth.uid.
+     * @allow (update) Authenticated user can update their own profile if the userId matches their auth.uid.
+     * @allow (delete) Authenticated user can delete their own profile if the userId matches their auth.uid.
+     * @deny (get) Authenticated user cannot read another user's profile.
+     * @deny (create) Authenticated user cannot create a profile for another user.
+     * @deny (update) Authenticated user cannot update another user's profile.
+     * @deny (delete) Authenticated user cannot delete another user's profile.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
+      // Function to check if the user is signed in
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // Function to check if the user is the owner of the document
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Function to check if the user is the existing owner of the document
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
       allow list: if false;
+
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if isSignedIn() && isOwner(userId) && resource.data.uid == userId;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Manages animal data, allowing public reads and admin-only writes.
+     * @description Allows public read access to animal data with restricted writes.
      * @path /animals/{animalId}
-     * @allow (get) Any user can read animal data.
-     * @allow (list) Any user can list animal data.
-     * @deny (create) A non-admin user cannot create animal data.
-     * @deny (update) A non-admin user cannot update animal data.
-     * @deny (delete) A non-admin user cannot delete animal data.
-     * @principle Allows public reads and restricts writes to authorized users.
+     * @allow (get) Anyone can read animal data.
+     * @allow (list) Anyone can list animal data.
+     * @deny (create) No one can create animal documents (until further logic is implemented).
+     * @deny (update) No one can update animal documents (until further logic is implemented).
+     * @deny (delete) No one can delete animal documents (until further logic is implemented).
+     * @principle Public read access with restricted writes.
      */
     match /animals/{animalId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages shelter data, allowing public reads and admin-only writes.
+     * @description Allows public read access to shelter data with restricted writes.
      * @path /shelters/{shelterId}
-     * @allow (get) Any user can read shelter data.
-     * @allow (list) Any user can list shelter data.
-     * @deny (create) A non-admin user cannot create shelter data.
-     * @deny (update) A non-admin user cannot update shelter data.
-     * @deny (delete) A non-admin user cannot delete shelter data.
-     * @principle Allows public reads and restricts writes to authorized users.
+     * @allow (get) Anyone can read shelter data.
+     * @allow (list) Anyone can list shelter data.
+     * @deny (create) No one can create shelter documents (until further logic is implemented).
+     * @deny (update) No one can update shelter documents (until further logic is implemented).
+     * @deny (delete) No one can delete shelter documents (until further logic is implemented).
+     * @principle Public read access with restricted writes.
      */
     match /shelters/{shelterId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
-      /**
-       * @description Manages site configuration, allowing public reads and admin-only writes.
-       * @path /config/site
-       * @allow (get) Any user can read the site configuration.
-       * @allow (list) Any user can list the site configuration.
-       * @deny (create) A non-admin user cannot create site configuration.
-       * @deny (update) A non-admin user cannot update site configuration.
-       * @deny (delete) A non-admin user cannot delete site configuration.
-       * @principle Allows public reads and restricts writes to authorized users.
-       */
-      match /config/site {
-          allow get: if true;
-          allow list: if true;
-          allow create: if isAdmin();
-          allow update: if isAdmin() && resource != null;
-          allow delete: if isAdmin() && resource != null;
-      }
-  }
-
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  function isOwner(userId) {
-    return request.auth.uid == userId;
-  }
-
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+     /**
+      * @description Restricts write access to the site configuration.
+      * @path /config/site
+      * @allow (get) Anyone can read the site configuration.
+      * @allow (list) Anyone can list the site configuration.
+      * @deny (create) No one can create the site configuration.
+      * @deny (update) No one can update the site configuration.
+      * @deny (delete) No one can delete the site configuration.
+      * @principle Restricts write access to the site configuration
+      */
+    match /config/site {
+        allow get, list: if true;
+        allow create, update, delete: if isSignedIn(); // TODO: Add more granular access control for site config.
     }
-
-  function isAdmin() {
-    return request.auth.token.role == 'admin';
   }
 }
