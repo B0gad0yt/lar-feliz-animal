@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, type UserCredential } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -77,51 +77,55 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const processUserSignIn = async (userCredential: UserCredential) => {
+    const user = userCredential.user;
+    if (firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        const newUser = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            role: 'user'
+        };
+        // This setDoc will now correctly emit a contextual error if it fails
+        setDoc(userDocRef, newUser).catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'create',
+                requestResourceData: newUser,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
+      }
+    }
+    toast({ title: 'Login com Google realizado com sucesso!' });
+    router.push('/');
+  };
+
+  const handleGoogleSignIn = () => {
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      if (firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (!userDoc.exists()) {
-            const newUser = {
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName,
-                photoURL: user.photoURL,
-                role: 'user'
-            };
-            setDoc(userDocRef, newUser).catch(async (serverError) => {
-                 const permissionError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'create',
-                    requestResourceData: newUser,
-                });
-                errorEmitter.emit('permission-error', permissionError);
+    
+    signInWithPopup(auth, provider)
+      .then(processUserSignIn)
+      .catch((error: any) => {
+        // Only handle specific, non-permission auth errors here.
+        // Permission errors will be caught by our listener.
+        if (error.code !== 'auth/popup-closed-by-user') {
+            toast({
+              variant: 'destructive',
+              title: 'Erro no login com Google',
+              description: error.message || 'Não foi possível autenticar com o Google.',
             });
         }
-      }
-
-      toast({ title: 'Login com Google realizado com sucesso!' });
-      router.push('/');
-    } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
+      })
+      .finally(() => {
         setIsLoading(false);
-        return;
-      }
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro no login com Google',
-        description: error.message || 'Não foi possível autenticar com o Google.',
       });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
