@@ -134,7 +134,7 @@ export function Header() {
         <div className="mr-4 flex items-center">
           <Link href="/" className="flex items-center space-x-2">
             <Logo className="h-8 w-8 text-primary" />
-            <span className="font-bold font-headline text-xl hidden sm:inline-block">
+            <span className="font-bold font-headline text-xl sm:inline-block">
                 {siteConfig?.title || 'Lar Feliz Animal'}
             </span>
           </Link>
