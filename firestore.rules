@@ -1,41 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+    function userHasRole(role) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
     function isOperator() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'operator';
+      return userHasRole('operator');
     }
 
     function isShelterAdmin() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'shelterAdmin';
+      return userHasRole('shelterAdmin');
     }
 
     // Regras para a coleção 'users'
     match /users/{userId} {
-      allow read;
-      allow create: if request.auth.uid == userId; // Qualquer usuário autenticado pode criar seu próprio perfil
-      allow update: if request.auth.uid == userId || isOperator(); // O próprio usuário ou um operador podem atualizar
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == userId; // Qualquer usuário autenticado pode criar seu próprio perfil
+      allow update: if request.auth != null && (request.auth.uid == userId || isOperator()); // O próprio usuário ou um operador podem atualizar
     }
 
     // Regras para a coleção 'animals'
     match /animals/{animalId} {
-      allow read;
-      allow create: if isOperator() || isShelterAdmin();
-      allow update: if isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid);
-      allow delete: if isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid);
+      allow read: if true;
+      allow create: if request.auth != null &&
+        (isOperator() || isShelterAdmin()) &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null &&
+        (isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid));
+      allow delete: if request.auth != null &&
+        (isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid));
     }
     
     // Regras para a coleção 'shelters'
     match /shelters/{shelterId} {
-        allow read;
+        allow read: if true;
         allow create, update, delete: if isOperator();
     }
 
     // Regras para configuração do site
     match /config/site {
-        allow read;
+        allow read: if true;
         allow create, update, delete: if isOperator();
     }
   }
