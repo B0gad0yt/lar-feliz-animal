@@ -29,7 +29,7 @@ export function FirebaseErrorListener() {
     errorEmitter.on('permission-error', handleError);
 
     return () => {
-      errorEmitter.removeListener('permission-error', handleError);
+      errorEmitter.off('permission-error', handleError);
     };
   }, [toast]);
 
