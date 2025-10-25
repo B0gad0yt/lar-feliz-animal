@@ -53,6 +53,7 @@ export default function NewAnimalPage() {
     resolver: zodResolver(animalSchema),
     defaultValues: {
       name: '',
+      species: appUser?.role === 'shelterAdmin' ? 'Cachorro' : undefined,
       breed: '',
       age: 0,
       description: '',
@@ -167,7 +168,7 @@ export default function NewAnimalPage() {
                     <FormItem><FormLabel>Espécie</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      value={field.value}
                       disabled={appUser?.role === 'shelterAdmin'}
                     >
                       <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>

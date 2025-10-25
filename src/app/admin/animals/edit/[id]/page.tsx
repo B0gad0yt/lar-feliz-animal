@@ -76,12 +76,14 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (animal) {
-      form.reset(animal);
-       if (appUser?.role === 'shelterAdmin') {
-        form.setValue('species', 'Cachorro');
-      }
+      const defaultValues = {
+        ...animal,
+        species: appUser?.role === 'shelterAdmin' ? 'Cachorro' : animal.species,
+      };
+      form.reset(defaultValues);
     }
-  }, [animal, form, appUser]);
+  }, [animal, appUser, form]);
+
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

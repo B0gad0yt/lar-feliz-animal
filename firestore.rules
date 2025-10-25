@@ -1,85 +1,42 @@
-/**
- * @file Firestore Security Rules
- * @core_philosophy This ruleset enforces a user-ownership model for user profiles,
- *  allows public read access to animal and shelter data, and provides read-only
- *  access to site configuration. Data validation is relaxed for rapid prototyping.
- * @data_structure
- *   - /users/{userId}: Stores user profile information, accessible only to the user themselves.
- *   - /animals/{animalId}: Stores animal adoption data, publicly readable.
- *   - /shelters/{shelterId}: Stores shelter information, publicly readable.
- *   - /config/site: Stores site-wide configuration, publicly readable.
- * @key_security_decisions
- *   - Users can only read and write their own profile data.
- *   - Animal and shelter data is publicly readable but write access is restricted.
- *   - Site configuration is publicly readable, but write access is restricted.
- *   - Schema validation is minimized for prototyping purposes.
- * @denormalization_for_authorization
- *   - The `animals` collection includes a `shelterId` field to associate animals with shelters,
- *     enabling efficient queries for animals belonging to a specific shelter without requiring
- *     complex joins or subqueries in the security rules.
- * @structural_segregation No segregation is required.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    function isOperator() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'operator';
+    }
 
-    /**
-     * @description Controls access to user profile data.
-     * @path /users/{userId}
-     * @allow (create) Authenticated user can create their own profile.
-     * @allow (get, list, update, delete) Authenticated user can only access their own profile.
-     * @deny (create) Creating a profile with a mismatched user ID.
-     * @deny (get, list, update, delete) Accessing another user's profile.
-     * @principle Enforces document ownership for user profiles.
-     */
+    function isShelterAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'shelterAdmin';
+    }
+
+    // Regras para a coleção 'users'
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.uid == request.auth.uid;
-      allow update: if isOwner(userId) && resource.data.uid == userId;
-      allow delete: if isOwner(userId) && resource.data.uid == userId;
+      allow read;
+      allow create: if request.auth.uid == userId; // Qualquer usuário autenticado pode criar seu próprio perfil
+      allow update: if request.auth.uid == userId || isOperator(); // O próprio usuário ou um operador podem atualizar
     }
 
-    /**
-     * @description Controls access to animal data.
-     * @path /animals/{animalId}
-     * @allow (get, list) Public read access to animal data.
-     * @deny (create, update, delete) No write access to animal data for regular users.
-     * @principle Provides public read access with restricted write access for animals.
-     */
+    // Regras para a coleção 'animals'
     match /animals/{animalId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-      // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read;
+      allow create: if isOperator() || isShelterAdmin();
+      allow update: if isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid);
     }
-
-     /**
-      * @description Controls access to shelter data.
-      * @path /shelters/{shelterId}
-      * @allow (get, list) Public read access to shelter data.
-      * @deny (create, update, delete) No write access to shelter data for regular users.
-      * @principle Provides public read access with restricted write access for shelters.
-      */
+    
+    // Regras para a coleção 'shelters'
     match /shelters/{shelterId} {
-        allow get, list: if true;
-        allow create, update, delete: if false;
-        // TODO: Add owner validation once the schema is updated with an ownership field.
+        allow read;
+        allow create, update, delete: if isOperator();
     }
 
-    /**
-     * @description Controls access to site configuration data.
-     * @path /config/site
-     * @allow (get) Public read access to site configuration.
-     * @deny (create, update, delete, list) No write access to site configuration for regular users.
-     * @principle Provides public read access with restricted write access for site configuration.
-     */
+    // Regras para configuração do site
     match /config/site {
-        allow get: if true;
-        allow list: if false;
-        allow create, update, delete: if false;
+        allow read;
+        allow create, update, delete: if isOperator();
     }
   }
 }
