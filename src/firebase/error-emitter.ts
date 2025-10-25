@@ -1,4 +1,4 @@
-import { Emitter } from 'tiny-emitter';
+import Emitter from 'tiny-emitter';
 import type { FirestorePermissionError } from './errors';
 
 type AppEvents = {
