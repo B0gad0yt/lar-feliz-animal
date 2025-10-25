@@ -3,7 +3,7 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useCollection, useDoc } from '@/firebase';
-import { collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, deleteDoc, setDoc, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Animal, User as AppUser, Shelter, SiteConfig } from '@/lib/types';
 import {
@@ -39,12 +39,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
-function AnimalsTab() {
+function AnimalsTab({ appUser }: { appUser: AppUser }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  const animalsQuery = useMemo(() => firestore ? collection(firestore, 'animals') : null, [firestore]);
+  const animalsQuery = useMemo(() => {
+    if (!firestore || !appUser) return null;
+    const animalsCollection = collection(firestore, 'animals');
+    if (appUser.role === 'operator') {
+      return animalsCollection;
+    }
+    // For shelterAdmin, filter by createdBy
+    return query(animalsCollection, where("createdBy", "==", appUser.uid));
+  }, [firestore, appUser]);
+
   const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
 
   const handleDelete = () => {
@@ -160,6 +169,77 @@ function AnimalsTab() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+    </Card>
+  )
+}
+
+function UsersTab() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [itemToEdit, setItemToEdit] = useState<AppUser | null>(null);
+
+  const usersQuery = useMemo(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const { data: users, loading: usersLoading } = useCollection<AppUser>(usersQuery);
+
+  const handleRoleChange = (user: AppUser, newRole: AppUser['role']) => {
+    if (!firestore) return;
+    const userRef = doc(firestore, 'users', user.uid);
+    setDoc(userRef, { role: newRole }, { merge: true })
+      .then(() => {
+        toast({ title: "Cargo atualizado com sucesso!" });
+      })
+      .catch((error) => {
+        console.error("Error updating user role: ", error);
+        toast({ variant: 'destructive', title: "Erro ao atualizar cargo." });
+      });
+  };
+
+  if (usersLoading) {
+     return <div className="text-center p-8">Carregando usuários...</div>;
+  }
+  
+  return (
+    <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+        <CardHeader>
+            <CardTitle>Gerenciar Usuários</CardTitle>
+            <CardDescription>Edite os cargos dos usuários do sistema.</CardDescription>
+        </CardHeader>
+        <CardContent>
+           <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Cargo</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {users && users.map((user) => (
+                            <TableRow key={user.uid}>
+                                <TableCell className="font-medium">{user.displayName}</TableCell>
+                                <TableCell>{user.email}</TableCell>
+                                <TableCell>
+                                    <Select
+                                        value={user.role}
+                                        onValueChange={(value) => handleRoleChange(user, value as AppUser['role'])}
+                                    >
+                                        <SelectTrigger className="w-[180px]">
+                                            <SelectValue placeholder="Selecione um cargo" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="user">Usuário</SelectItem>
+                                            <SelectItem value="shelterAdmin">Admin (Abrigo)</SelectItem>
+                                            <SelectItem value="operator">Operador</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </CardContent>
     </Card>
   )
 }
@@ -432,12 +512,12 @@ export default function AdminPage() {
       return;
     }
     
-    if (!appUser || appUser.role !== 'admin') {
+    if (!appUser || (appUser.role !== 'operator' && appUser.role !== 'shelterAdmin')) {
       setAuthStatus('unauthorized');
       return;
     }
 
-    if (user && appUser && appUser.role === 'admin') {
+    if (user && appUser && (appUser.role === 'operator' || appUser.role === 'shelterAdmin')) {
       setAuthStatus('authorized');
     }
   }, [user, userLoading, appUser, appUserLoading, router]);
@@ -461,7 +541,7 @@ export default function AdminPage() {
                       </CardDescription>
                   </CardHeader>
                   <CardContent>
-                      <p>Esta área é restrita a administradores do site. Se você acredita que isso é um erro, entre em contato com o suporte.</p>
+                      <p>Esta área é restrita a administradores e operadores do site. Se você acredita que isso é um erro, entre em contato com o suporte.</p>
                   </CardContent>
                   <CardFooter>
                       <Button className="w-full" onClick={() => router.push('/')}>
@@ -488,27 +568,42 @@ export default function AdminPage() {
                   <Bone className="mr-2 h-5 w-5" />
                   Animais
                 </TabsTrigger>
-                <TabsTrigger value="shelters" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
-                  <Home className="mr-2 h-5 w-5" />
-                  Abrigos
-                </TabsTrigger>
-                 <TabsTrigger value="settings" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
-                  <Settings className="mr-2 h-5 w-5" />
-                  Configurações
-                </TabsTrigger>
+                {appUser?.role === 'operator' && (
+                  <>
+                    <TabsTrigger value="shelters" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
+                      <Home className="mr-2 h-5 w-5" />
+                      Abrigos
+                    </TabsTrigger>
+                    <TabsTrigger value="users" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
+                      <Users className="mr-2 h-5 w-5" />
+                      Usuários
+                    </TabsTrigger>
+                     <TabsTrigger value="settings" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
+                      <Settings className="mr-2 h-5 w-5" />
+                      Configurações
+                    </TabsTrigger>
+                  </>
+                )}
             </TabsList>
           </aside>
           
           <main className="md:col-span-3">
               <TabsContent value="animals">
-                  <AnimalsTab />
+                  {appUser && <AnimalsTab appUser={appUser} />}
               </TabsContent>
-              <TabsContent value="shelters">
-                  <SheltersTab />
-              </TabsContent>
-              <TabsContent value="settings">
-                  <SettingsTab />
-              </TabsContent>
+               {appUser?.role === 'operator' && (
+                <>
+                  <TabsContent value="shelters">
+                      <SheltersTab />
+                  </TabsContent>
+                  <TabsContent value="users">
+                      <UsersTab />
+                  </TabsContent>
+                  <TabsContent value="settings">
+                      <SettingsTab />
+                  </TabsContent>
+                </>
+               )}
           </main>
         </div>
        </Tabs>

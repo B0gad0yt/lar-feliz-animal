@@ -12,6 +12,7 @@ export type Animal = {
   health: string[];
   photos: string[]; // data URIs
   shelterId: string;
+  createdBy?: string; // UID of the user who created the animal
 };
 
 export type Shelter = {
@@ -28,7 +29,7 @@ export type User = {
     email: string | null;
     displayName: string | null;
     photoURL: string | null;
-    role: 'user' | 'admin';
+    role: 'operator' | 'shelterAdmin' | 'user';
 };
 
 export type SocialLink = {

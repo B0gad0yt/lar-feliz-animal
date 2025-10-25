@@ -12,6 +12,7 @@ import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import type { User as AppUser } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,7 +47,7 @@ export default function RegisterPage() {
 
       if (firestore) {
         const userDocRef = doc(firestore, 'users', user.uid);
-        const newUser = {
+        const newUser: AppUser = {
             uid: user.uid,
             email: user.email,
             displayName: values.name,

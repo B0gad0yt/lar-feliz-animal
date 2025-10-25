@@ -4,13 +4,14 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useDoc } from '@/firebase';
+import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
-import { useRef } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
+import type { User as AppUser } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -45,6 +46,9 @@ export default function NewAnimalPage() {
   const { user, loading: userLoading } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
+
   const form = useForm<z.infer<typeof animalSchema>>({
     resolver: zodResolver(animalSchema),
     defaultValues: {
@@ -59,6 +63,13 @@ export default function NewAnimalPage() {
       shelterId: 'shelter-1',
     },
   });
+
+  useEffect(() => {
+    if (appUser?.role === 'shelterAdmin') {
+      form.setValue('species', 'Cachorro');
+    }
+  }, [appUser, form]);
+
 
   const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({ control: form.control, name: "health" });
   const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({ control: form.control, name: "photos" });
@@ -91,11 +102,12 @@ export default function NewAnimalPage() {
   };
 
   const onSubmit = (values: z.infer<typeof animalSchema>) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     const collectionRef = collection(firestore, 'animals');
     
     addDoc(collectionRef, {
         ...values,
+        createdBy: user.uid, // Add creator's UID
         createdAt: serverTimestamp(),
     }).then(() => {
         toast({
@@ -112,7 +124,7 @@ export default function NewAnimalPage() {
     });
   };
   
-  if (userLoading) {
+  if (userLoading || appUserLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
   
@@ -152,7 +164,21 @@ export default function NewAnimalPage() {
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <FormField control={form.control} name="species" render={({ field }) => (
-                    <FormItem><FormLabel>Espécie</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Espécie</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      disabled={appUser?.role === 'shelterAdmin'}
+                    >
+                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="Cachorro">Cachorro</SelectItem>
+                        <SelectItem value="Gato">Gato</SelectItem>
+                        <SelectItem value="Coelho">Coelho</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
                  )}/>
                  <FormField control={form.control} name="gender" render={({ field }) => (
                     <FormItem><FormLabel>Sexo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>

@@ -48,7 +48,7 @@ export function Header() {
   const configRef = useMemo(() => firestore ? doc(firestore, 'config', 'site') : null, [firestore]);
   const { data: siteConfig } = useDoc<SiteConfig>(configRef);
   
-  const isAdmin = appUser?.role === 'admin';
+  const isAdmin = appUser?.role === 'operator' || appUser?.role === 'shelterAdmin';
 
   const handleSignOut = () => {
     signOut(auth);

@@ -21,7 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash, ArrowLeft, Upload, X } from 'lucide-react';
-import type { Animal } from '@/lib/types';
+import type { Animal, User as AppUser } from '@/lib/types';
 
 
 const animalSchema = z.object({
@@ -46,6 +46,9 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
   
   const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
@@ -74,8 +77,11 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (animal) {
       form.reset(animal);
+       if (appUser?.role === 'shelterAdmin') {
+        form.setValue('species', 'Cachorro');
+      }
     }
-  }, [animal, form]);
+  }, [animal, form, appUser]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -108,10 +114,16 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const onSubmit = (values: z.infer<typeof animalSchema>) => {
     if (!firestore || !animalRef) return;
     
-    setDoc(animalRef, {
+    const dataToUpdate: Partial<Animal> & { updatedAt: any } = {
         ...values,
         updatedAt: serverTimestamp(),
-    }, { merge: true }).then(() => {
+    };
+
+    if (!animal?.createdBy && user) {
+        dataToUpdate.createdBy = user.uid;
+    }
+
+    setDoc(animalRef, dataToUpdate, { merge: true }).then(() => {
         toast({
             title: 'Animal atualizado com sucesso!',
         });
@@ -126,7 +138,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     });
   };
   
-  if (userLoading || animalLoading) {
+  if (userLoading || animalLoading || appUserLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
   
@@ -170,7 +182,22 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
 
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <FormField control={form.control} name="species" render={({ field }) => (
-                    <FormItem><FormLabel>Espécie</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Cachorro">Cachorro</SelectItem><SelectItem value="Gato">Gato</SelectItem><SelectItem value="Coelho">Coelho</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem>
+                      <FormLabel>Espécie</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={appUser?.role === 'shelterAdmin'}
+                      >
+                        <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="Cachorro">Cachorro</SelectItem>
+                            <SelectItem value="Gato">Gato</SelectItem>
+                            <SelectItem value="Coelho">Coelho</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                  )}/>
                  <FormField control={form.control} name="gender" render={({ field }) => (
                     <FormItem><FormLabel>Sexo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>
