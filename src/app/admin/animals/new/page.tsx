@@ -169,7 +169,6 @@ export default function NewAnimalPage() {
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={appUser?.role === 'shelterAdmin'}
                     >
                       <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                       <SelectContent>
@@ -250,7 +249,13 @@ export default function NewAnimalPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
                         {photoFields.map((field, index) => (
                             <div key={field.id} className="relative aspect-square">
-                                <Image src={field.value} alt={`Foto ${index + 1}`} fill className="rounded-md object-cover"/>
+                                <Image
+                                  src={field.value}
+                                  alt={`Foto ${index + 1}`}
+                                  fill
+                                  unoptimized
+                                  className="rounded-md object-cover"
+                                />
                                 <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 z-10" onClick={() => removePhoto(index)}>
                                     <X className="h-4 w-4" />
                                 </Button>
