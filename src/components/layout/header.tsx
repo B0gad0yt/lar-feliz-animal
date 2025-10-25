@@ -131,14 +131,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/90 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="flex items-center md:mr-6">
-          <Link href="/" className="flex items-center space-x-2">
-            <Logo className="h-8 w-8 text-primary" />
-            <span className="font-bold font-headline text-xl">
-              {siteConfig?.title || 'Lar Feliz Animal'}
-            </span>
-          </Link>
-        </div>
+        <Link href="/" className="flex items-center space-x-2 mr-6">
+          <Logo className="h-8 w-8 text-primary" />
+          <span className="font-bold font-headline text-xl hidden sm:inline-block">
+            {siteConfig?.title || 'Lar Feliz Animal'}
+          </span>
+        </Link>
         <nav className="hidden md:flex flex-1 items-center space-x-6 text-sm font-medium">
           {navItems.map((item) => (
             <NavLink key={item.href} {...item} />
