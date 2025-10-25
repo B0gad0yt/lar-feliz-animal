@@ -74,6 +74,7 @@ export default function NewAnimalPage() {
 
   const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({ control: form.control, name: "health" });
   const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({ control: form.control, name: "photos" });
+  const photos = form.watch('photos');
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -168,7 +169,7 @@ export default function NewAnimalPage() {
                     <FormItem><FormLabel>Espécie</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value}
+                      defaultValue={field.value}
                     >
                       <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                       <SelectContent>
@@ -247,10 +248,13 @@ export default function NewAnimalPage() {
                     <FormLabel>Fotos</FormLabel>
                     <FormDescription>Faça upload das fotos do animal.</FormDescription>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
-                        {photoFields.map((field, index) => (
+                        {photoFields.map((field, index) => {
+                            const photoSrc = photos?.[index];
+                            if (!photoSrc) return null;
+                            return (
                             <div key={field.id} className="relative aspect-square">
                                 <Image
-                                  src={field.value}
+                                  src={photoSrc}
                                   alt={`Foto ${index + 1}`}
                                   fill
                                   unoptimized
@@ -260,7 +264,7 @@ export default function NewAnimalPage() {
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
-                        ))}
+                        )})}
                          <Button type="button" variant="outline" className="aspect-square flex items-center justify-center flex-col gap-2 p-2 text-center" onClick={() => fileInputRef.current?.click()}>
                             <Upload className="h-8 w-8" />
                             <span className="text-xs">Adicionar Fotos</span>
