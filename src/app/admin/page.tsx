@@ -176,9 +176,10 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
 function UsersTab() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  
+  const [itemToEdit, setItemToEdit] = useState<AppUser | null>(null);
+
   const usersQuery = useMemo(() => firestore ? collection(firestore, 'users') : null, [firestore]);
-  const { data: users, loading: usersLoading, error } = useCollection<AppUser>(usersQuery);
+  const { data: users, loading: usersLoading } = useCollection<AppUser>(usersQuery);
 
   const handleRoleChange = (user: AppUser, newRole: AppUser['role']) => {
     if (!firestore) return;
@@ -188,7 +189,6 @@ function UsersTab() {
         toast({ title: "Cargo atualizado com sucesso!" });
       })
       .catch((error) => {
-        // The permission error will be caught by the global listener now
         console.error("Error updating user role: ", error);
         toast({ variant: 'destructive', title: "Erro ao atualizar cargo." });
       });

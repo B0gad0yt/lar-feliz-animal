@@ -55,22 +55,34 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
 
   const form = useForm<z.infer<typeof animalSchema>>({
     resolver: zodResolver(animalSchema),
-  });
-  
-  const isShelterAdmin = appUser?.role === 'shelterAdmin';
-
-  useEffect(() => {
-    if (animal) {
-      form.reset({
-        ...animal,
-        species: isShelterAdmin ? 'Cachorro' : animal.species,
-      });
+    defaultValues: {
+      name: '',
+      species: undefined,
+      breed: '',
+      age: 0,
+      size: undefined,
+      gender: undefined,
+      description: '',
+      story: '',
+      personality: [],
+      health: [],
+      photos: [],
+      shelterId: '',
     }
-  }, [animal, isShelterAdmin, form]);
-
+  });
 
   const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({ control: form.control, name: "health" });
   const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({ control: form.control, name: "photos" });
+
+  useEffect(() => {
+    if (animal) {
+      const defaultValues = {
+        ...animal,
+        species: appUser?.role === 'shelterAdmin' ? 'Cachorro' : animal.species,
+      };
+      form.reset(defaultValues);
+    }
+  }, [animal, appUser, form]);
 
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,8 +116,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const onSubmit = (values: z.infer<typeof animalSchema>) => {
     if (!firestore || !animalRef) return;
     
-    // Ensure createdBy is not overwritten if it already exists
-    const dataToUpdate: Partial<Animal> & { updatedAt: any; createdBy?: string } = {
+    const dataToUpdate: Partial<Animal> & { updatedAt: any } = {
         ...values,
         updatedAt: serverTimestamp(),
     };
@@ -178,7 +189,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                       <Select 
                         onValueChange={field.onChange} 
                         value={field.value}
-                        disabled={isShelterAdmin}
+                        disabled={appUser?.role === 'shelterAdmin'}
                       >
                         <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
                         <SelectContent>
@@ -191,7 +202,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                     </FormItem>
                  )}/>
                  <FormField control={form.control} name="gender" render={({ field }) => (
-                    <FormItem><FormLabel>Sexo</FormLabel><Select onValuechange={field.onChange} defaultValue={field.value} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Sexo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="Macho">Macho</SelectItem><SelectItem value="Fêmea">Fêmea</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                  )}/>
                  <FormField control={form.control} name="age" render={({ field }) => (
                     <FormItem><FormLabel>Idade</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>

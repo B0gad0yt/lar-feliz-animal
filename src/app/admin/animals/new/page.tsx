@@ -48,15 +48,12 @@ export default function NewAnimalPage() {
 
   const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
-  
-  const isShelterAdmin = appUser?.role === 'shelterAdmin';
 
   const form = useForm<z.infer<typeof animalSchema>>({
     resolver: zodResolver(animalSchema),
-    defaultValues: useMemo(() => ({
+    defaultValues: {
       name: '',
-      // Set species to 'Cachorro' if it's a shelter admin, otherwise undefined.
-      species: isShelterAdmin ? 'Cachorro' : undefined, 
+      species: appUser?.role === 'shelterAdmin' ? 'Cachorro' : undefined,
       breed: '',
       age: 0,
       description: '',
@@ -65,26 +62,14 @@ export default function NewAnimalPage() {
       health: ['Vacinado', 'Vermifugado'],
       photos: [],
       shelterId: 'shelter-1',
-    }), [isShelterAdmin]),
+    },
   });
 
-  // Reset the form with default values once user data is loaded.
   useEffect(() => {
-    if (!appUserLoading) {
-       form.reset({
-        name: '',
-        species: isShelterAdmin ? 'Cachorro' : undefined,
-        breed: '',
-        age: 0,
-        description: '',
-        story: '',
-        personality: [],
-        health: ['Vacinado', 'Vermifugado'],
-        photos: [],
-        shelterId: 'shelter-1',
-       });
+    if (appUser?.role === 'shelterAdmin') {
+      form.setValue('species', 'Cachorro');
     }
-  }, [appUserLoading, isShelterAdmin, form]);
+  }, [appUser, form]);
 
 
   const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({ control: form.control, name: "health" });
@@ -184,7 +169,7 @@ export default function NewAnimalPage() {
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={isShelterAdmin}
+                      disabled={appUser?.role === 'shelterAdmin'}
                     >
                       <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                       <SelectContent>

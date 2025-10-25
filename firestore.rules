@@ -1,52 +1,42 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper function to check if a user has a specific role.
-    function isUserRole(userId, role) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role == role;
+    
+    function isOperator() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'operator';
+    }
+
+    function isShelterAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'shelterAdmin';
+    }
+
+    // Regras para a coleção 'users'
+    match /users/{userId} {
+      allow read;
+      allow create: if request.auth.uid == userId; // Qualquer usuário autenticado pode criar seu próprio perfil
+      allow update: if request.auth.uid == userId || isOperator(); // O próprio usuário ou um operador podem atualizar
+    }
+
+    // Regras para a coleção 'animals'
+    match /animals/{animalId} {
+      allow read;
+      allow create: if isOperator() || isShelterAdmin();
+      allow update: if isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid);
     }
     
-    // Helper function to check if the user is the owner of a resource.
-    function isOwner(resource) {
-      return request.auth.uid == resource.data.createdBy;
-    }
-
-    match /users/{userId} {
-      // Anyone can create their own user document (on signup).
-      allow create: if request.auth.uid == userId;
-      // Users can read their own data. Operators can read any user's data.
-      allow get: if request.auth.uid == userId || isUserRole(request.auth.uid, 'operator');
-      // Users can update their own data. Operators can update any user's data.
-      allow update: if request.auth.uid == userId || isUserRole(request.auth.uid, 'operator');
-      // Only operators can list all users and delete users.
-      allow list, delete: if isUserRole(request.auth.uid, 'operator');
-    }
-
-    match /animals/{animalId} {
-      // Any authenticated user can read animal data.
-      allow get, list: if request.auth.uid != null;
-      // Only operators and shelterAdmins can create animals.
-      allow create: if isUserRole(request.auth.uid, 'operator') || isUserRole(request.auth.uid, 'shelterAdmin');
-      // Operators can update any animal. shelterAdmins can only update animals they created.
-      allow update: if isUserRole(request.auth.uid, 'operator') || isOwner(resource);
-      // Operators can delete any animal. shelterAdmins can only delete animals they created.
-      allow delete: if isUserRole(request.auth.uid, 'operator') || isOwner(resource);
-    }
-
+    // Regras para a coleção 'shelters'
     match /shelters/{shelterId} {
-      // Any authenticated user can read shelter data.
-      allow get, list: if request.auth.uid != null;
-      // Only operators can create, update, or delete shelters.
-      allow write: if isUserRole(request.auth.uid, 'operator');
+        allow read;
+        allow create, update, delete: if isOperator();
     }
 
+    // Regras para configuração do site
     match /config/site {
-        // Anyone can read site config
-        allow get: if true;
-        // Only operators can write to site config
-        allow write: if isUserRole(request.auth.uid, 'operator');
+        allow read;
+        allow create, update, delete: if isOperator();
     }
   }
 }
