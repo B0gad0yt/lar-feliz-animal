@@ -5,11 +5,38 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { initializeFirebase } from '@/firebase';
+import { getDoc, doc } from 'firebase/firestore';
+import type { SiteConfig } from '@/lib/types';
 
-export const metadata: Metadata = {
-  title: 'Lar Feliz Animal',
-  description: 'Encontre seu amigo para sempre.',
-};
+
+// This function now dynamically generates metadata
+export async function generateMetadata(): Promise<Metadata> {
+  // Initialize server-side firebase to fetch config
+  const { firestore } = initializeFirebase();
+  const configRef = doc(firestore, 'config', 'site');
+  
+  try {
+    const configSnap = await getDoc(configRef);
+
+    if (configSnap.exists()) {
+      const siteConfig = configSnap.data() as SiteConfig;
+      return {
+        title: siteConfig.title || 'Lar Feliz Animal',
+        description: 'Encontre seu amigo para sempre.',
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch site config for metadata", error);
+  }
+
+  // Fallback metadata
+  return {
+    title: 'Lar Feliz Animal',
+    description: 'Encontre seu amigo para sempre.',
+  };
+}
+
 
 export default function RootLayout({
   children,
