@@ -21,10 +21,11 @@ Somente usuários autenticados com papel `operator` conseguem obter um ID token 
 
 ## Verificação humana no formulário de adoção
 
-O formulário usa o [ALTCHA](https://altcha.org) como desafio padrão. Configure uma chave HMAC para assinar os desafios:
+O formulário usa o hCaptcha como desafio. Configure as chaves do hCaptcha em um arquivo `.env.local` ou no provedor de hospedagem:
 
 ```
-ALTCHA_HMAC_KEY=uma-chave-secreta-bem-grande
+NEXT_PUBLIC_HCAPTCHA_SITEKEY=seu-sitekey-publico
+HCAPTCHA_SECRET=sua-chave-secreta-do-hcaptcha
 ```
 
-O widget consome os endpoints `/api/altcha/challenge` e `/api/altcha/verify`. O Firestore mantém o campo `altchaPayload` em cada pedido de adoção como registro da verificação.
+O widget carrega o script oficial do hCaptcha e o endpoint server-side `/api/hcaptcha/verify` valida o token junto ao serviço do hCaptcha antes de salvar o pedido no Firestore.

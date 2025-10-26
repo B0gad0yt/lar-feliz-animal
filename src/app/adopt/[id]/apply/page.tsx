@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,20 +19,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Heart, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import type { Animal } from '@/lib/types';
-import 'altcha';
-import 'altcha/altcha.css';
-
 declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'altcha-widget': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-        challengeurl?: string;
-        verifyurl?: string;
-        auto?: string;
-        floating?: string;
-        theme?: string;
-      };
-    }
+  interface Window {
+    hcaptcha?: any;
   }
 }
 
@@ -55,11 +44,8 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [altchaPayload, setAltchaPayload] = useState<string | null>(null);
-  const [widgetElement, setWidgetElement] = useState<HTMLElement | null>(null);
-  const altchaRef = useCallback((element: HTMLElement | null) => {
-    setWidgetElement(element);
-  }, []);
+  const [hcaptchaToken, setHcaptchaToken] = useState<string | null>(null);
+  const hcaptchaContainer = useRef<HTMLDivElement | null>(null);
 
   const animalRef = useMemo(() => (firestore ? doc(firestore, 'animals', params.id) : null), [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
@@ -77,39 +63,51 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     },
   });
 
-  useEffect(() => {
-    if (!widgetElement) return;
-
-    const handleVerified = (event: Event) => {
-      const detail = (event as CustomEvent<{ payload?: string }>).detail;
-      setAltchaPayload(detail?.payload ?? null);
-    };
-
-    const resetToken = () => {
-      setAltchaPayload(null);
-    };
-
-    widgetElement.addEventListener('verified', handleVerified as EventListener);
-    widgetElement.addEventListener('error', resetToken as EventListener);
-    widgetElement.addEventListener('expired', resetToken as EventListener);
-    widgetElement.addEventListener('reset', resetToken as EventListener);
-
-    return () => {
-      widgetElement.removeEventListener('verified', handleVerified as EventListener);
-      widgetElement.removeEventListener('error', resetToken as EventListener);
-      widgetElement.removeEventListener('expired', resetToken as EventListener);
-      widgetElement.removeEventListener('reset', resetToken as EventListener);
-    };
-  }, [widgetElement]);
-
-  // Dev-only fallback: allow bypassing ALTCHA during local development or when
-  // NEXT_PUBLIC_ALTCHA_BYPASS=true. This helps testing the form without a
-  // configured HMAC key. In production this won't run.
+  // Load and render hCaptcha explicitly on client
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const bypass = process.env.NEXT_PUBLIC_ALTCHA_BYPASS === 'true' || process.env.NODE_ENV === 'development';
-    if (bypass) {
-      setAltchaPayload((p) => p ?? 'dev-bypass-token');
+
+    const siteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY;
+    if (!siteKey) return; // nothing to do without a site key
+
+    let widgetId: number | null = null;
+    const renderWidget = () => {
+      try {
+        if (!hcaptchaContainer.current) return;
+        if (!window.hcaptcha) return;
+        // render explicit hcaptcha widget
+        widgetId = window.hcaptcha.render(hcaptchaContainer.current, {
+          sitekey: siteKey,
+          callback: (token: string) => setHcaptchaToken(token),
+          'expired-callback': () => setHcaptchaToken(null),
+        });
+      } catch (e) {
+        // ignore render errors
+        console.error('hCaptcha render error', e);
+      }
+    };
+
+    if (!window.hcaptcha) {
+      const s = document.createElement('script');
+      s.src = 'https://js.hcaptcha.com/1/api.js?render=explicit';
+      s.async = true;
+      s.defer = true;
+      s.onload = () => {
+        renderWidget();
+      };
+      document.head.appendChild(s);
+      return () => {
+        try {
+          document.head.removeChild(s);
+        } catch {}
+      };
+    } else {
+      renderWidget();
+      return () => {
+        try {
+          if (widgetId !== null && window.hcaptcha?.remove) window.hcaptcha.remove(widgetId);
+        } catch {}
+      };
     }
   }, []);
 
@@ -157,11 +155,11 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   async function onSubmit(values: z.infer<typeof applicationSchema>) {
     if (!firestore || !user || !animal) return;
 
-    if (!altchaPayload) {
+    if (!hcaptchaToken) {
       toast({
         variant: 'destructive',
         title: 'Verificação pendente',
-        description: 'Resolva o desafio ALTCHA antes de enviar.',
+        description: 'Resolva o hCaptcha antes de enviar.',
       });
       return;
     }
@@ -170,6 +168,20 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
 
     try {
       const applicationsRef = collection(firestore, 'adoptionApplications');
+
+      // Verify token server-side before writing to Firestore
+      const verifyRes = await fetch('/api/hcaptcha/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: hcaptchaToken }),
+      });
+
+      const verifyJson = await verifyRes.json();
+      if (!verifyRes.ok || !verifyJson.success) {
+        toast({ variant: 'destructive', title: 'Verificação falhou', description: 'Falha ao validar hCaptcha. Tente novamente.' });
+        setIsSubmitting(false);
+        return;
+      }
 
       await addDoc(applicationsRef, {
         animalId: animal.id,
@@ -186,7 +198,7 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
         hasOtherPets: values.hasOtherPets,
         reason: values.reason,
         agreement: values.agreement,
-        altchaPayload,
+  hcaptchaToken,
         status: 'pending',
         createdAt: serverTimestamp(),
       });
@@ -354,21 +366,14 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
                 <FormLabel>Verificação Humana</FormLabel>
                 <FormDescription>Resolva o desafio abaixo para confirmar que você não é um robô.</FormDescription>
                 <div className="mt-2 rounded-md border border-border/60 bg-background/60 p-3">
-                  <altcha-widget
-                    ref={altchaRef}
-                    challengeurl="/api/altcha/challenge"
-                    verifyurl="/api/altcha/verify"
-                    auto="off"
-                    floating="auto"
-                    theme="auto"
-                  />
+                  <div ref={hcaptchaContainer} />
                 </div>
-                {!altchaPayload && (
+                {!hcaptchaToken && (
                   <p className="mt-2 text-sm text-muted-foreground">Clique no desafio acima e aguarde a confirmação antes de enviar.</p>
                 )}
               </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !altchaPayload}>
+              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !hcaptchaToken}>
                 <Heart className="mr-2 h-5 w-5" /> {isSubmitting ? 'Enviando...' : 'Enviar Pedido de Adoção'}
               </Button>
             </form>
