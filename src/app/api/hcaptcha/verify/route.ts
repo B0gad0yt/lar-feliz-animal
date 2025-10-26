@@ -17,19 +17,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Token ausente.' }, { status: 400 });
     }
 
-    const params = new URLSearchParams();
-    params.append('secret', secret);
-    params.append('response', token);
+    // Try to use the official `hcaptcha` package if it's installed; otherwise
+    // fall back to the direct siteverify HTTP call.
+    let data: any = null;
+    try {
+      const mod = await import('hcaptcha');
+      if (mod && typeof mod.verify === 'function') {
+        data = await mod.verify(secret, token);
+      }
+    } catch (e) {
+      // ignore — fallback to HTTP below
+    }
 
-    const res = await fetch('https://hcaptcha.com/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
+    if (!data) {
+      const params = new URLSearchParams();
+      params.append('secret', secret);
+      params.append('response', token);
 
-    const data = await res.json();
+      const res = await fetch('https://hcaptcha.com/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
 
-    if (!data.success) {
+      data = await res.json();
+    }
+
+    if (!data || data.success !== true) {
       return NextResponse.json({ success: false, data }, { status: 400 });
     }
 
