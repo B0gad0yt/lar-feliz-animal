@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Heart, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import type { Animal } from '@/lib/types';
+import Script from 'next/script';
 declare global {
   interface Window {
     hcaptcha?: any;
@@ -50,7 +51,9 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const [siteKeyLoading, setSiteKeyLoading] = useState(!initialSiteKey);
   const [siteKeyError, setSiteKeyError] = useState<string | null>(null);
   const [siteKeyAttempt, setSiteKeyAttempt] = useState(0);
+  const [scriptReady, setScriptReady] = useState(false);
   const hcaptchaContainer = useRef<HTMLDivElement | null>(null);
+  const widgetIdRef = useRef<number | null>(null);
 
   const animalRef = useMemo(() => (firestore ? doc(firestore, 'animals', params.id) : null), [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
@@ -106,72 +109,54 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     };
   }, [siteKey, siteKeyAttempt]);
 
-  // Load and render hCaptcha explicitly on client once a key is available
+  // Load and render hCaptcha explicitly on client once the script + key are available
   useEffect(() => {
-    if (typeof window === 'undefined' || !siteKey) return;
+    if (typeof window === 'undefined' || !siteKey || !scriptReady) return;
+    if (!hcaptchaContainer.current || !window.hcaptcha) return;
 
-    let widgetId: number | null = null;
-    let scriptEl: HTMLScriptElement | null = null;
-    let cancelled = false;
-
-    const renderWidget = () => {
-      if (cancelled) return;
-      try {
-        if (!hcaptchaContainer.current || !window.hcaptcha) return;
-        widgetId = window.hcaptcha.render(hcaptchaContainer.current, {
-          sitekey: siteKey,
-          callback: (token: string) => setHcaptchaToken(token),
-          'expired-callback': () => setHcaptchaToken(null),
-        });
-        setSiteKeyError(null);
-        setSiteKeyLoading(false);
-      } catch (e) {
-        console.error('hCaptcha render error', e);
-        setSiteKeyError('Falha ao inicializar o hCaptcha.');
-        setSiteKeyLoading(false);
-      }
-    };
-
-    if (!window.hcaptcha) {
-      scriptEl = document.createElement('script');
-      scriptEl.src = 'https://js.hcaptcha.com/1/api.js?render=explicit';
-      scriptEl.async = true;
-      scriptEl.defer = true;
-      scriptEl.onload = renderWidget;
-      scriptEl.onerror = (err) => {
-        console.error('Erro ao carregar script do hCaptcha', err);
-        setSiteKeyError('O script do hCaptcha não pôde ser carregado.');
-        setSiteKeyLoading(false);
-      };
-      document.head.appendChild(scriptEl);
-    } else {
-      renderWidget();
+    try {
+      widgetIdRef.current = window.hcaptcha.render(hcaptchaContainer.current, {
+        sitekey: siteKey,
+        callback: (token: string) => setHcaptchaToken(token),
+        'expired-callback': () => setHcaptchaToken(null),
+        'error-callback': () => setSiteKeyError('O hCaptcha retornou um erro. Tente novamente.'),
+      });
+      setSiteKeyError(null);
+    } catch (error) {
+      console.error('hCaptcha render error', error);
+      setSiteKeyError('Falha ao inicializar o hCaptcha.');
     }
 
     return () => {
-      cancelled = true;
-      if (widgetId !== null && window?.hcaptcha?.remove) {
+      if (widgetIdRef.current !== null && window?.hcaptcha?.remove) {
         try {
-          window.hcaptcha.remove(widgetId);
+          window.hcaptcha.remove(widgetIdRef.current);
         } catch {}
       }
-      if (scriptEl) {
-        try {
-          document.head.removeChild(scriptEl);
-        } catch {}
-      }
+      widgetIdRef.current = null;
       setHcaptchaToken(null);
     };
-  }, [siteKey, siteKeyAttempt]);
+  }, [scriptReady, siteKey, siteKeyAttempt]);
 
   const handleReloadCaptcha = useCallback(() => {
     setSiteKeyError(null);
     setHcaptchaToken(null);
-    setSiteKeyLoading(true);
+
+    if (widgetIdRef.current !== null && window?.hcaptcha?.reset) {
+      try {
+        window.hcaptcha.reset(widgetIdRef.current);
+        return;
+      } catch (error) {
+        console.error('Erro ao resetar hCaptcha', error);
+      }
+    }
+
+    setSiteKeyLoading(!siteKey);
     setSiteKeyAttempt((prev) => prev + 1);
   }, [siteKey]);
 
-  const shouldShowCaptchaWidget = Boolean(siteKey && !siteKeyError);
+  const canRenderCaptcha = Boolean(siteKey && scriptReady && !siteKeyError);
+  const isCaptchaLoading = siteKeyLoading || (!scriptReady && !siteKeyError);
 
   if (animalLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
@@ -284,6 +269,15 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
 
   return (
     <div className="container mx-auto max-w-3xl py-12 px-4">
+      <Script
+        src="https://js.hcaptcha.com/1/api.js?render=explicit"
+        strategy="lazyOnload"
+        onLoad={() => setScriptReady(true)}
+        onError={(error) => {
+          console.error('Erro ao carregar script do hCaptcha', error);
+          setSiteKeyError('O script do hCaptcha não pôde ser carregado.');
+        }}
+      />
       <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl md:text-4xl font-headline">Formulário de Adoção</CardTitle>
@@ -428,9 +422,9 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
                 <FormLabel>Verificação Humana</FormLabel>
                 <FormDescription>Resolva o desafio abaixo para confirmar que você não é um robô.</FormDescription>
                 <div className="mt-2 rounded-md border border-border/60 bg-background/60 p-3 min-h-[110px] flex items-center justify-center">
-                  {shouldShowCaptchaWidget ? (
+                  {canRenderCaptcha ? (
                     <div ref={hcaptchaContainer} className="w-full flex justify-center" />
-                  ) : siteKeyLoading ? (
+                  ) : isCaptchaLoading ? (
                     <p className="text-sm text-muted-foreground">Carregando desafio do hCaptcha...</p>
                   ) : (
                     <div className="text-center space-y-3">
@@ -441,15 +435,15 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
                     </div>
                   )}
                 </div>
-                {shouldShowCaptchaWidget && !hcaptchaToken && (
+                {canRenderCaptcha && !hcaptchaToken && (
                   <p className="mt-2 text-sm text-muted-foreground">Clique no desafio acima e aguarde a confirmação antes de enviar.</p>
                 )}
-                {!shouldShowCaptchaWidget && !siteKeyLoading && (
+                {!canRenderCaptcha && !isCaptchaLoading && (
                   <p className="mt-2 text-sm text-muted-foreground">Caso o problema persista, entre em contato com o suporte.</p>
                 )}
               </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !hcaptchaToken}>
+              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !hcaptchaToken || !!siteKeyError}>
                 <Heart className="mr-2 h-5 w-5" /> {isSubmitting ? 'Enviando...' : 'Enviar Pedido de Adoção'}
               </Button>
             </form>
