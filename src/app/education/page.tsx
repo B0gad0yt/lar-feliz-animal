@@ -72,8 +72,8 @@ const resources = [
   {
     title: 'Guia de posse responsável',
     description: 'Checklist com vacinação, castração, alimentação e bem-estar social para o primeiro ano.',
-    link: '/docs/guia-posse-responsavel.pdf',
-    cta: 'Baixar guia',
+    link: 'https://smastr16.blob.core.windows.net/portaleducacaoambiental/sites/11/2024/08/manual_de_posse_responsavel.pdf',
+    cta: 'Manual oficial (PDF)',
   },
   {
     title: 'Veja ONGs/Abrigos',
