@@ -54,6 +54,21 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const [recaptchaReady, setRecaptchaReady] = useState(false);
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
   
+  useEffect(() => {
+    if (!siteKey) return;
+
+    const interval = setInterval(() => {
+      if (window.grecaptcha?.enterprise) {
+        window.grecaptcha.enterprise.ready(() => {
+          setRecaptchaReady(true);
+          clearInterval(interval);
+        });
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [siteKey]);
+  
   const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
@@ -346,19 +361,3 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     </div>
   );
 }
-
-    
-  useEffect(() => {
-    if (!siteKey) return;
-
-    const interval = setInterval(() => {
-      if (window.grecaptcha?.enterprise) {
-        window.grecaptcha.enterprise.ready(() => {
-          setRecaptchaReady(true);
-          clearInterval(interval);
-        });
-      }
-    }, 300);
-
-    return () => clearInterval(interval);
-  }, [siteKey]);
