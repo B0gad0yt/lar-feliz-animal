@@ -37,7 +37,7 @@ export type User = {
 };
 
 export type SocialLink = {
-  platform: "Instagram" | "Twitter" | "Facebook" | "YouTube" | "LinkedIn" | "GitHub" | "TikTok";
+  platform: "Instagram" | "Twitter" | "Facebook" | "YouTube" | "LinkedIn" | "GitHub";
   url: string;
 }
 

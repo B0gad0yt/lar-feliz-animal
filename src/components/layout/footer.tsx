@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
-import { Github, Twitter, Instagram, Youtube, Linkedin, Facebook, icons } from 'lucide-react';
+import { Github, Twitter, Instagram, Youtube, Linkedin, Facebook } from 'lucide-react';
 import type { SiteConfig, SocialLink } from '@/lib/types';
 import { Logo } from '@/components/icons/logo';
 
@@ -16,7 +16,6 @@ const iconMap: Record<SocialLink['platform'], React.FC<React.ComponentProps<'svg
     YouTube: Youtube,
     LinkedIn: Linkedin,
     Facebook: Facebook,
-    TikTok: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"></path><path d="M12 15a7 7 0 0 0 7 7h-1a7 7 0 0 0-7-7v0a7 7 0 0 0-7 7H4a7 7 0 0 0 7-7z"></path><path d="M12 12V2"></path></svg>,
 }
 
 

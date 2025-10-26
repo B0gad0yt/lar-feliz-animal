@@ -65,9 +65,9 @@ const ADOPTION_CHART_CONFIG: ChartConfig = {
 };
 
 const SPECIES_COLORS: Record<Animal['species'], string> = {
-  Cachorro: '#f97316',
+  Cachorro: '#c084fc',
   Gato: '#a855f7',
-  Coelho: '#22d3ee',
+  Coelho: '#7c3aed',
 };
 
 const toDate = (value: any): Date | null => {
@@ -270,7 +270,7 @@ function DashboardOverview({
     return Object.entries(counts).map(([species, value]) => ({
       species,
       value,
-      fill: SPECIES_COLORS[species as Animal['species']] ?? '#64748b',
+      fill: SPECIES_COLORS[species as Animal['species']] ?? '#8b5cf6',
       percentage: totalAnimals ? Math.round((value / totalAnimals) * 100) : 0,
     }));
   }, [animals, totalAnimals]);
@@ -297,7 +297,7 @@ function DashboardOverview({
             </h2>
             <p className="mt-3 max-w-2xl text-base text-muted-foreground">{highlightCopy}</p>
           </div>
-          <div className="flex w-full flex-col gap-4 rounded-2xl border border-white/20 bg-white/70 p-4 text-right shadow-sm backdrop-blur md:w-auto md:flex-row md:items-center md:text-left">
+          <div className="flex w-full flex-col gap-4 rounded-2xl border border-white/40 bg-white/80 p-4 text-right shadow-sm backdrop-blur dark:border-primary/30 dark:bg-[#2d1a3f] dark:text-white md:w-auto md:flex-row md:items-center md:text-left">
             <div>
               <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <TrendingUp className="h-4 w-4 text-primary" /> Conversão
@@ -732,42 +732,51 @@ function ApplicationsTab({ appUser, applications, applicationsLoading }: { appUs
   }
 
   return (
-    <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
-      <CardHeader>
-        <CardTitle>Pedidos de Adoção</CardTitle>
-        <CardDescription>Gerencie solicitações recebidas pelos abrigos.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-8">
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Inbox className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold">Pendentes</h3>
+    <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="bg-card/70 backdrop-blur-sm border border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <Inbox className="h-4 w-4 text-primary" /> Pendentes
+              </div>
+              <CardDescription>Pedidos aguardando resposta</CardDescription>
+            </div>
             <Badge variant="secondary">{pendingApplications.length}</Badge>
-          </div>
-          {pendingApplications.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum pedido pendente no momento.</p>
-          ) : (
-            <div className="space-y-4">
-              {pendingApplications.map((application) => renderApplicationCard(application, 'pending'))}
+          </CardHeader>
+          <CardContent>
+            {pendingApplications.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum pedido pendente no momento.</p>
+            ) : (
+              <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-2">
+                {pendingApplications.map((application) => renderApplicationCard(application, 'pending'))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/70 backdrop-blur-sm border border-primary/10">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <Check className="h-4 w-4 text-primary" /> Aceitos
+              </div>
+              <CardDescription>Prontos para agendar visitas</CardDescription>
             </div>
-          )}
-        </section>
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Check className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold">Aceitos</h3>
             <Badge variant="secondary">{acceptedApplications.length}</Badge>
-          </div>
-          {acceptedApplications.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum pedido aceito ainda.</p>
-          ) : (
-            <div className="space-y-4">
-              {acceptedApplications.map((application) => renderApplicationCard(application, 'accepted'))}
-            </div>
-          )}
-        </section>
-      </CardContent>
-    </Card>
+          </CardHeader>
+          <CardContent>
+            {acceptedApplications.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum pedido aceito ainda.</p>
+            ) : (
+              <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-2">
+                {acceptedApplications.map((application) => renderApplicationCard(application, 'accepted'))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
@@ -1252,10 +1261,12 @@ function SheltersTab({ shelters, sheltersLoading }: { shelters: Shelter[]; shelt
   )
 }
 
+const socialPlatforms = ["Instagram", "Twitter", "Facebook", "YouTube", "LinkedIn", "GitHub"] as const;
+
 const siteConfigSchema = z.object({
   title: z.string().min(1, 'Título do site é obrigatório.'),
   socialLinks: z.array(z.object({
-    platform: z.enum(["Instagram", "Twitter", "Facebook", "YouTube", "LinkedIn", "GitHub", "TikTok"]),
+    platform: z.enum(socialPlatforms),
     url: z.string().url('URL inválida.')
   })).optional()
 });
@@ -1350,13 +1361,9 @@ function SettingsTab() {
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                   <FormControl><SelectTrigger><SelectValue placeholder="Plataforma" /></SelectTrigger></FormControl>
                                   <SelectContent>
-                                    <SelectItem value="Instagram">Instagram</SelectItem>
-                                    <SelectItem value="Twitter">Twitter</SelectItem>
-                                    <SelectItem value="Facebook">Facebook</SelectItem>
-                                    <SelectItem value="YouTube">YouTube</SelectItem>
-                                    <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                                    <SelectItem value="GitHub">GitHub</SelectItem>
-                                    <SelectItem value="TikTok">TikTok</SelectItem>
+                                    {socialPlatforms.map((platform) => (
+                                      <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -1500,59 +1507,50 @@ export default function AdminPage() {
         />
       )}
       <Tabs defaultValue="animals" className="w-full">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <aside className="md:col-span-1">
-             <TabsList className="flex flex-col h-auto items-stretch bg-transparent p-0 w-full md:w-auto">
-                <TabsTrigger value="animals" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
-                  <Bone className="mr-2 h-5 w-5" />
-                  Animais
-                </TabsTrigger>
-                <TabsTrigger value="applications" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
-                  <Inbox className="mr-2 h-5 w-5" />
-                  Pedidos
-                </TabsTrigger>
-                {appUser?.role === 'operator' && (
-                  <>
-                    <TabsTrigger value="shelters" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
-                      <Home className="mr-2 h-5 w-5" />
-                      Abrigos
-                    </TabsTrigger>
-                    <TabsTrigger value="users" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
-                      <Users className="mr-2 h-5 w-5" />
-                      Usuários
-                    </TabsTrigger>
-                     <TabsTrigger value="settings" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
-                      <Settings className="mr-2 h-5 w-5" />
-                      Configurações
-                    </TabsTrigger>
-                  </>
-                )}
-            </TabsList>
-          </aside>
-          
-          <main className="md:col-span-3">
-              <TabsContent value="animals">
-                  {appUser && <AnimalsTab appUser={appUser} animals={animals ?? []} animalsLoading={animalsLoading} />}
+        <TabsList className="mb-8 flex w-full flex-wrap justify-center gap-3 bg-transparent p-0">
+          <TabsTrigger value="animals" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+            <Bone className="h-4 w-4" /> Animais
+          </TabsTrigger>
+          <TabsTrigger value="applications" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+            <Inbox className="h-4 w-4" /> Pedidos
+          </TabsTrigger>
+          {appUser?.role === 'operator' && (
+            <>
+              <TabsTrigger value="shelters" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+                <Home className="h-4 w-4" /> Abrigos
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+                <Users className="h-4 w-4" /> Usuários
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+                <Settings className="h-4 w-4" /> Configurações
+              </TabsTrigger>
+            </>
+          )}
+        </TabsList>
+
+        <div className="space-y-8">
+          <TabsContent value="animals">
+            {appUser && <AnimalsTab appUser={appUser} animals={animals ?? []} animalsLoading={animalsLoading} />}
+          </TabsContent>
+          <TabsContent value="applications">
+            {appUser && <ApplicationsTab appUser={appUser} applications={applications ?? []} applicationsLoading={applicationsLoading} />}
+          </TabsContent>
+          {appUser?.role === 'operator' && (
+            <>
+              <TabsContent value="shelters">
+                <SheltersTab shelters={shelters ?? []} sheltersLoading={sheltersLoading} />
               </TabsContent>
-              <TabsContent value="applications">
-                  {appUser && <ApplicationsTab appUser={appUser} applications={applications ?? []} applicationsLoading={applicationsLoading} />}
+              <TabsContent value="users">
+                <UsersTab />
               </TabsContent>
-               {appUser?.role === 'operator' && (
-                <>
-                  <TabsContent value="shelters">
-                      <SheltersTab shelters={shelters ?? []} sheltersLoading={sheltersLoading} />
-                  </TabsContent>
-                  <TabsContent value="users">
-                      <UsersTab />
-                  </TabsContent>
-                  <TabsContent value="settings">
-                      <SettingsTab />
-                  </TabsContent>
-                </>
-               )}
-          </main>
+              <TabsContent value="settings">
+                <SettingsTab />
+              </TabsContent>
+            </>
+          )}
         </div>
-       </Tabs>
+      </Tabs>
     </div>
   );
 }

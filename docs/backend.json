@@ -59,7 +59,7 @@
                 "items": {
                     "type": "object",
                     "properties": {
-                        "platform": { "type": "string", "enum": ["Instagram", "Twitter", "Facebook", "YouTube", "LinkedIn", "GitHub", "TikTok"] },
+                        "platform": { "type": "string", "enum": ["Instagram", "Twitter", "Facebook", "YouTube", "LinkedIn", "GitHub"] },
                         "url": { "type": "string", "format": "uri" }
                     },
                     "required": ["platform", "url"]

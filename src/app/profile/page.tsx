@@ -204,7 +204,10 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle>Atualizar email</CardTitle>
             <CardDescription>
-              Informe um novo endereço para onde enviaremos um link de confirmação via SMTP configurado no Firebase.
+              Informe um novo endereço para onde enviaremos um link de confirmação. 
+              <span className="text-destructive font-medium block mt-1">
+                Verifique também a caixa de spam ou a aba de promoções caso não receba o email.
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent>
