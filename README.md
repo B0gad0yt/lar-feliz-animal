@@ -25,9 +25,9 @@ O formulário de adoção usa o reCAPTCHA Enterprise para evitar spam. Configure
 
 ```
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=sua-chave-publica
-FIREBASE_ADMIN_PROJECT_ID=mesmo projeto usado no reCAPTCHA
-FIREBASE_ADMIN_CLIENT_EMAIL=service-account@projeto.iam.gserviceaccount.com
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+RECAPTCHA_ENTERPRISE_API_KEY=sua-api-key-do-google-cloud
+# Opcional (default = global)
+RECAPTCHA_ENTERPRISE_LOCATION=global
 ```
 
-No Google Cloud Console habilite o reCAPTCHA Enterprise, crie uma chave Web e autorize os domínios (produção + localhost). O backend usa o mesmo service account do Firebase Admin para chamar a API `createAssessment`.
+No Google Cloud Console habilite o reCAPTCHA Enterprise, crie uma chave Web e autorize os domínios (produção + localhost). Em seguida gere uma API Key em *APIs & Services > Credentials*, restrita ao serviço do reCAPTCHA Enterprise, e use-a na variável `RECAPTCHA_ENTERPRISE_API_KEY`. O backend usa essa chave para chamar a API `projects.locations.assessments.create`.
