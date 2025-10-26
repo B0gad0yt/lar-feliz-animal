@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, type UserCredential } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -21,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { LogIn } from 'lucide-react';
 import { getAuthErrorMessage } from '@/lib/auth-errors';
+import { HCaptchaChallenge } from '@/components/hcaptcha/challenge';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido.'),
@@ -53,6 +55,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const auth = getAuth();
   const firestore = useFirestore();
 
@@ -61,8 +65,61 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '' },
   });
 
+  const requestNewCaptcha = useCallback(() => {
+    setCaptchaToken(null);
+    setCaptchaResetKey((prev) => prev + 1);
+  }, []);
+
+  const verifyCaptcha = useCallback(async () => {
+    if (!captchaToken) {
+      toast({
+        variant: 'destructive',
+        title: 'Confirme o hCaptcha',
+        description: 'Resolva o desafio antes de continuar.',
+      });
+      return false;
+    }
+
+    const tokenToVerify = captchaToken;
+
+    try {
+      const res = await fetch('/api/hcaptcha/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenToVerify }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const details = data?.data?.['error-codes']?.join(', ');
+        toast({
+          variant: 'destructive',
+          title: 'Verificação falhou',
+          description: details ? `hCaptcha retornou: ${details}` : 'Não foi possível validar o hCaptcha.',
+        });
+        requestNewCaptcha();
+        return false;
+      }
+      requestNewCaptcha();
+      return true;
+    } catch (error) {
+      console.error('Erro ao validar hCaptcha', error);
+      toast({
+        variant: 'destructive',
+        title: 'Falha na verificação',
+        description: 'Não conseguimos validar o hCaptcha. Tente novamente.',
+      });
+      requestNewCaptcha();
+      return false;
+    }
+  }, [captchaToken, requestNewCaptcha, toast]);
+
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
+    const isHuman = await verifyCaptcha();
+    if (!isHuman) {
+      setIsLoading(false);
+      return;
+    }
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({ title: 'Login realizado com sucesso!' });
@@ -82,7 +139,7 @@ export default function LoginPage() {
   const processUserSignIn = async (userCredential: UserCredential) => {
     const user = userCredential.user;
     if (firestore) {
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
@@ -108,23 +165,30 @@ export default function LoginPage() {
     router.push('/');
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    const isHuman = await verifyCaptcha();
+    if (!isHuman) {
+      setIsLoading(false);
+      return;
+    }
     const provider = new GoogleAuthProvider();
-    
-    signInWithPopup(auth, provider)
-      .then(processUserSignIn)
-      .catch((error: any) => {
-        if (error.code === 'auth/popup-closed-by-user') return;
-        toast({
-          variant: 'destructive',
-          title: 'Erro no login com Google',
-          description: getAuthErrorMessage(error, 'Não foi possível autenticar com o Google.'),
-        });
-      })
-      .finally(() => {
-        setIsLoading(false);
+    try {
+      const credential = await signInWithPopup(auth, provider);
+      await processUserSignIn(credential);
+    } catch (error: any) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        return;
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Erro no login com Google',
+        description: getAuthErrorMessage(error, 'Não foi possível autenticar com o Google.'),
       });
+    } finally {
+      // Em sucesso, o redirect acontece rapidamente, mas garantimos que o estado volte caso o usuário permaneça na página
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -163,7 +227,12 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <HCaptchaChallenge
+                onTokenChange={setCaptchaToken}
+                resetSignal={captchaResetKey}
+                description="Resolva o desafio para liberar o acesso ao login."
+              />
+              <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
                 <LogIn className="mr-2 h-4 w-4" /> {isLoading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>
@@ -179,7 +248,7 @@ export default function LoginPage() {
             </div>
           </div>
           
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || !captchaToken}>
             <GoogleIcon /> Google
           </Button>
 

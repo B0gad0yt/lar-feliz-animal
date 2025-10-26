@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useDoc, useFirestore } from '@/firebase';
 import { collection, doc, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -55,7 +56,7 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const hcaptchaContainer = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<number | null>(null);
 
-  const animalRef = useMemo(() => (firestore ? doc(firestore, 'animals', params.id) : null), [firestore, params.id]);
+  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', params.id) as DocumentReference<Animal>) : null), [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
   const form = useForm<z.infer<typeof applicationSchema>>({

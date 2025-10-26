@@ -7,12 +7,13 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import type { CollectionReference } from 'firebase/firestore';
 import type { Shelter } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SheltersPage() {
   const firestore = useFirestore();
-  const sheltersQuery = useMemo(() => firestore ? collection(firestore, 'shelters') : null, [firestore]);
+  const sheltersQuery = useMemo(() => (firestore ? (collection(firestore, 'shelters') as CollectionReference<Shelter>) : null), [firestore]);
   const { data: shelters, loading } = useCollection<Shelter>(sheltersQuery);
 
   const renderSkeleton = () => (

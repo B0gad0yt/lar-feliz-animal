@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useDoc, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -47,10 +48,13 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   const { user, loading: userLoading } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const userDocRef = useMemo(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
+  }, [firestore, user]);
   const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
   
-  const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
+  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', params.id) as DocumentReference<Animal>) : null), [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
   const form = useForm<z.infer<typeof animalSchema>>({
@@ -71,8 +75,15 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     }
   });
 
-  const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({ control: form.control, name: "health" });
-  const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({ control: form.control, name: "photos" });
+  const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({
+    control: form.control as any,
+    name: 'health',
+  });
+  const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({
+    control: form.control as any,
+    name: 'photos',
+  });
+  const photos = form.watch('photos');
 
   useEffect(() => {
     if (animal) {
@@ -268,14 +279,18 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                     <FormLabel>Fotos</FormLabel>
                     <FormDescription>Faça upload das fotos do animal.</FormDescription>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
-                        {photoFields.map((field, index) => (
-                            <div key={field.id} className="relative aspect-square">
-                                <Image src={field.value} alt={`Foto ${index + 1}`} fill className="rounded-md object-cover"/>
-                                <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 z-10" onClick={() => removePhoto(index)}>
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
+                        {photoFields.map((field, index) => {
+                            const photoUrl = photos?.[index];
+                            if (!photoUrl) return null;
+                            return (
+                              <div key={field.id} className="relative aspect-square">
+                                  <Image src={photoUrl} alt={`Foto ${index + 1}`} fill unoptimized className="rounded-md object-cover" />
+                                  <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 z-10" onClick={() => removePhoto(index)}>
+                                      <X className="h-4 w-4" />
+                                  </Button>
+                              </div>
+                            );
+                        })}
                          <Button type="button" variant="outline" className="aspect-square flex items-center justify-center flex-col gap-2 p-2 text-center" onClick={() => fileInputRef.current?.click()}>
                             <Upload className="h-8 w-8" />
                             <span className="text-xs">Adicionar Fotos</span>

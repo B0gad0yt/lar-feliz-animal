@@ -11,15 +11,16 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { PawPrint, Heart, Stethoscope, Home, Calendar, Bone, Cat } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import type { Animal, Shelter } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AnimalProfilePage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
-  const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
+  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', params.id) as DocumentReference<Animal>) : null), [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
   
-  const shelterRef = useMemo(() => firestore && animal ? doc(firestore, 'shelters', animal.shelterId) : null, [firestore, animal]);
+  const shelterRef = useMemo(() => (firestore && animal ? (doc(firestore, 'shelters', animal.shelterId) as DocumentReference<Shelter>) : null), [firestore, animal]);
   const { data: shelter, loading: shelterLoading } = useDoc<Shelter>(shelterRef);
   
   const InfoCard = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (

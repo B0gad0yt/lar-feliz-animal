@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import type { CollectionReference } from 'firebase/firestore';
 import type { Animal } from '@/lib/types';
 import { temperamentOptions } from '@/lib/data';
 
@@ -15,7 +16,7 @@ import { Label } from '@/components/ui/label';
 
 export default function MatcherPage() {
   const firestore = useFirestore();
-  const animalsQuery = useMemo(() => firestore ? collection(firestore, 'animals') : null, [firestore]);
+  const animalsQuery = useMemo(() => (firestore ? (collection(firestore, 'animals') as CollectionReference<Animal>) : null), [firestore]);
   const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
 
   const [selectedTemperaments, setSelectedTemperaments] = useState<string[]>([]);

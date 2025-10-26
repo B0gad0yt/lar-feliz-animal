@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { useDoc, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { Github, Twitter, Instagram, Youtube, Linkedin, Facebook, icons } from 'lucide-react';
 import type { SiteConfig, SocialLink } from '@/lib/types';
 import { Logo } from '@/components/icons/logo';
@@ -22,7 +23,7 @@ const iconMap: Record<SocialLink['platform'], React.FC<React.ComponentProps<'svg
 export function Footer() {
   const firestore = useFirestore();
 
-  const configRef = useMemo(() => firestore ? doc(firestore, 'config', 'site') : null, [firestore]);
+  const configRef = useMemo(() => (firestore ? (doc(firestore, 'config', 'site') as DocumentReference<SiteConfig>) : null), [firestore]);
   const { data: siteConfig } = useDoc<SiteConfig>(configRef);
 
   const socialLinks = siteConfig?.socialLinks?.slice(0, 4) || [];

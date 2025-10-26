@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { CollectionReference } from 'firebase/firestore';
+import type { Shelter } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -44,7 +46,7 @@ export default function NewShelterPage() {
 
   const onSubmit = async (values: z.infer<typeof shelterSchema>) => {
     if (!firestore) return;
-    const collectionRef = collection(firestore, 'shelters');
+    const collectionRef = collection(firestore, 'shelters') as CollectionReference<Shelter>;
     
     addDoc(collectionRef, {
         ...values,

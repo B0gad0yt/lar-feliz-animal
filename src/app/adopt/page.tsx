@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import type { CollectionReference } from 'firebase/firestore';
 import type { Animal } from '@/lib/types';
 import { AnimalCard } from '@/components/animal-card';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdoptPage() {
   const firestore = useFirestore();
-  const animalsQuery = useMemo(() => firestore ? collection(firestore, 'animals') : null, [firestore]);
+  const animalsQuery = useMemo(() => (firestore ? (collection(firestore, 'animals') as CollectionReference<Animal>) : null), [firestore]);
   const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
 
   const [filters, setFilters] = useState({

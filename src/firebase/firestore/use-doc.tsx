@@ -1,10 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import type {
-  FirestoreError,
-  DocumentReference,
-  DocumentSnapshot,
-} from 'firebase/firestore';
+import type { FirestoreError, DocumentReference, DocumentSnapshot } from 'firebase/firestore';
 import { onSnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -25,10 +21,10 @@ function useDoc<T>(ref: DocumentReference<T> | null) {
 
     const unsubscribe = onSnapshot(
       ref,
-      (snapshot: DocumentSnapshot) => {
+      (snapshot: DocumentSnapshot<T>) => {
         if (snapshot.exists()) {
-          const docData = { ...snapshot.data(), id: snapshot.id } as T;
-          setData(docData);
+          const docData = snapshot.data();
+          setData(docData ? ({ ...docData, id: snapshot.id } as T) : null);
         } else {
           setData(null);
         }

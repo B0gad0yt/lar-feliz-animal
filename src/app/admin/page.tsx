@@ -4,6 +4,7 @@ import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useCollection, useDoc } from '@/firebase';
 import { collection, doc, deleteDoc, setDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
+import type { CollectionReference, DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -54,7 +55,7 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
 
   const animalsQuery = useMemo(() => {
     if (!firestore || !appUser) return null;
-    const animalsCollection = collection(firestore, 'animals');
+    const animalsCollection = collection(firestore, 'animals') as CollectionReference<Animal>;
     if (appUser.role === 'operator') {
       return animalsCollection;
     }
@@ -67,7 +68,7 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
   const handleDelete = () => {
     if (!firestore || !itemToDelete) return;
     
-    const docRef = doc(firestore, 'animals', itemToDelete);
+    const docRef = doc(firestore, 'animals', itemToDelete) as DocumentReference<Animal>;
     
     deleteDoc(docRef).then(() => {
         toast({
@@ -190,7 +191,7 @@ function ApplicationsTab({ appUser }: { appUser: AppUser }) {
 
   const applicationsQuery = useMemo(() => {
     if (!firestore || !appUser) return null;
-    const applicationsRef = collection(firestore, 'adoptionApplications');
+    const applicationsRef = collection(firestore, 'adoptionApplications') as CollectionReference<AdoptionApplication>;
     if (appUser.role === 'operator') {
       return applicationsRef;
     }
@@ -206,7 +207,7 @@ function ApplicationsTab({ appUser }: { appUser: AppUser }) {
     if (!firestore || !application.id) return;
     setProcessingId(application.id);
     try {
-      const applicationRef = doc(firestore, 'adoptionApplications', application.id);
+      const applicationRef = doc(firestore, 'adoptionApplications', application.id) as DocumentReference<AdoptionApplication>;
       await updateDoc(applicationRef, {
         status,
         handledBy: appUser.uid,
@@ -231,7 +232,7 @@ function ApplicationsTab({ appUser }: { appUser: AppUser }) {
     if (!firestore || !application.id) return;
     setRemovingId(application.id);
     try {
-      await deleteDoc(doc(firestore, 'adoptionApplications', application.id));
+      await deleteDoc(doc(firestore, 'adoptionApplications', application.id) as DocumentReference<AdoptionApplication>);
       toast({ title: 'Pedido removido.' });
     } catch (error: any) {
       console.error(error);
@@ -249,20 +250,20 @@ function ApplicationsTab({ appUser }: { appUser: AppUser }) {
     if (!firestore || !application.id) return;
     setAdoptingId(application.id);
     try {
-      await updateDoc(doc(firestore, 'adoptionApplications', application.id), {
+      await updateDoc(doc(firestore, 'adoptionApplications', application.id) as DocumentReference<AdoptionApplication>, {
         status: 'adopted',
         handledBy: appUser.uid,
         handledAt: serverTimestamp(),
       });
 
-      await deleteDoc(doc(firestore, 'animals', application.animalId));
+      await deleteDoc(doc(firestore, 'animals', application.animalId) as DocumentReference<Animal>);
 
       const related = (applications ?? []).filter(
         (item) => item.animalId === application.animalId && item.id && item.id !== application.id
       );
       await Promise.all(
         related.map((item) =>
-          deleteDoc(doc(firestore, 'adoptionApplications', item.id!))
+          deleteDoc(doc(firestore, 'adoptionApplications', item.id!) as DocumentReference<AdoptionApplication>)
         )
       );
 
@@ -441,7 +442,7 @@ function UsersTab() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const usersQuery = useMemo(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const usersQuery = useMemo(() => (firestore ? (collection(firestore, 'users') as CollectionReference<AppUser>) : null), [firestore]);
   const { data: users, loading: usersLoading } = useCollection<AppUser>(usersQuery);
 
   const form = useForm<UserFormValues>({
@@ -478,7 +479,7 @@ function UsersTab() {
 
   const handleRoleChange = (user: AppUser, newRole: AppUser['role']) => {
     if (!firestore) return;
-    const userRef = doc(firestore, 'users', user.uid);
+    const userRef = doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
     setDoc(userRef, { role: newRole }, { merge: true })
       .then(() => {
         toast({ title: "Cargo atualizado com sucesso!" });
@@ -791,13 +792,13 @@ function SheltersTab() {
   const { toast } = useToast();
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  const sheltersQuery = useMemo(() => firestore ? collection(firestore, 'shelters') : null, [firestore]);
+  const sheltersQuery = useMemo(() => (firestore ? (collection(firestore, 'shelters') as CollectionReference<Shelter>) : null), [firestore]);
   const { data: shelters, loading: sheltersLoading } = useCollection<Shelter>(sheltersQuery);
 
   const handleDelete = () => {
     if (!firestore || !itemToDelete) return;
     
-    const docRef = doc(firestore, 'shelters', itemToDelete);
+    const docRef = doc(firestore, 'shelters', itemToDelete) as DocumentReference<Shelter>;
     
     deleteDoc(docRef).then(() => {
         toast({ title: 'Abrigo excluído com sucesso!' });
@@ -903,7 +904,7 @@ function SettingsTab() {
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const configRef = useMemo(() => firestore ? doc(firestore, 'config', 'site') : null, [firestore]);
+  const configRef = useMemo(() => (firestore ? (doc(firestore, 'config', 'site') as DocumentReference<SiteConfig>) : null), [firestore]);
   const { data: siteConfig, loading: configLoading } = useDoc<SiteConfig>(configRef);
 
   const form = useForm<z.infer<typeof siteConfigSchema>>({
@@ -1038,7 +1039,7 @@ export default function AdminPage() {
   const router = useRouter();
   const firestore = useFirestore();
 
-  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const userDocRef = useMemo(() => (firestore && user ? (doc(firestore, 'users', user.uid) as DocumentReference<AppUser>) : null), [firestore, user]);
   const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
 
   const [authStatus, setAuthStatus] = useState<'verifying' | 'authorized' | 'unauthorized'>('verifying');

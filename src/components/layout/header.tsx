@@ -13,6 +13,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useUser, useDoc, useFirestore } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import type { User as AppUser, SiteConfig } from '@/lib/types';
 
 
@@ -42,10 +43,10 @@ export function Header() {
   const firestore = useFirestore();
   const auth = getAuth();
   
-  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const userDocRef = useMemo(() => (firestore && user ? (doc(firestore, 'users', user.uid) as DocumentReference<AppUser>) : null), [firestore, user]);
   const { data: appUser } = useDoc<AppUser>(userDocRef);
 
-  const configRef = useMemo(() => firestore ? doc(firestore, 'config', 'site') : null, [firestore]);
+  const configRef = useMemo(() => (firestore ? (doc(firestore, 'config', 'site') as DocumentReference<SiteConfig>) : null), [firestore]);
   const { data: siteConfig } = useDoc<SiteConfig>(configRef);
   
   const isAdmin = appUser?.role === 'operator' || appUser?.role === 'shelterAdmin';

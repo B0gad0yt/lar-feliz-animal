@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useDoc, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -34,7 +35,7 @@ export default function EditShelterPage({ params }: { params: { id: string } }) 
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   
-  const shelterRef = useMemo(() => firestore ? doc(firestore, 'shelters', params.id) : null, [firestore, params.id]);
+  const shelterRef = useMemo(() => (firestore ? (doc(firestore, 'shelters', params.id) as DocumentReference<Shelter>) : null), [firestore, params.id]);
   const { data: shelter, loading: shelterLoading } = useDoc<Shelter>(shelterRef);
 
   const form = useForm<z.infer<typeof shelterSchema>>({

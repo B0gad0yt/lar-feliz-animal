@@ -31,19 +31,19 @@ const PillarCard = ({ icon, title, description }: { icon: React.ReactNode; title
 
 const stats = [
   {
-    value: '6 milhões+',
-    label: 'Cães e gatos abandonados no Brasil',
-    detail: 'Estimativa da OMS e ONGs parceiras',
+    value: '30 milhões+',
+    label: 'Animais em situação de rua no Brasil',
+    detail: 'Estimativa citada pela OMS e ONGs (2023)',
   },
   {
-    value: '40%',
-    label: 'Dos abandonos ocorrem ainda filhotes',
-    detail: 'Fonte: Fórum Nacional de Proteção',
+    value: '185 mil',
+    label: 'Animais acolhidos por ONGs monitoradas',
+    detail: 'Censo Instituto Pet Brasil 2023',
   },
   {
-    value: 'R$ 250/mês',
-    label: 'Custo médio para manter um pet saudável',
-    detail: 'Inclui alimentação, prevenção e consultas',
+    value: 'R$ 330/mês',
+    label: 'Custo médio para tutelar um cão saudável',
+    detail: 'Projeção ABINPET 2022 para porte médio',
   },
 ];
 
@@ -76,16 +76,16 @@ const resources = [
     cta: 'Baixar guia',
   },
   {
-    title: 'Mapa de campanhas de castração',
-    description: 'Calendário colaborativo com mutirões gratuitos ou a baixo custo na sua região.',
-    link: '/shelters',
-    cta: 'Ver mapa',
+    title: 'Veja ONGs/Abrigos',
+    description: 'Explore organizações que oferecem animais prontos para adoção responsável.',
+    link: '/adopt',
+    cta: 'Ir para adoções',
   },
   {
     title: 'Canal de denúncias',
-    description: 'Passo a passo para registrar ocorrências e salvar evidências de forma segura.',
-    link: '/docs/denuncie.pdf',
-    cta: 'Como denunciar',
+    description: 'Registre ocorrências de maus-tratos diretamente com a Polícia Civil de São Paulo.',
+    link: 'https://www.delegaciaeletronica.policiacivil.sp.gov.br/ssp-de-cidadao/home',
+    cta: 'Registrar ocorrência',
   },
 ];
 
@@ -143,8 +143,9 @@ export default function EducationPage() {
               </Card>
             ))}
           </div>
-          <p className="text-center text-sm text-muted-foreground mt-4 flex justify-center items-center gap-2">
-            <AlertTriangle className="h-4 w-4" /> Dados aproximados atualizados em 2024 — quanto mais pessoas informadas, menores esses números.
+          <p className="text-center text-sm text-muted-foreground mt-4 flex flex-col items-center gap-1">
+            <span className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Fontes: OMS, Instituto Pet Brasil 2023, ABINPET 2022.</span>
+            <span>Compartilhe dados verificados; transparência reduz abandono e ajuda a direcionar recursos.</span>
           </p>
         </section>
 
@@ -283,24 +284,21 @@ export default function EducationPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-muted-foreground">{resource.description}</p>
-                  <a href={resource.link} className="inline-flex items-center text-primary font-semibold hover:underline">
+                  <a
+                    href={resource.link}
+                    className="inline-flex items-center text-primary font-semibold hover:underline"
+                    target={resource.link.startsWith('http') ? '_blank' : undefined}
+                    rel={resource.link.startsWith('http') ? 'noreferrer' : undefined}
+                  >
                     {resource.cta}
                   </a>
                 </CardContent>
               </Card>
             ))}
           </div>
-          <Card className="mt-8 bg-primary text-primary-foreground border-0">
-            <CardContent className="py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <p className="text-lg font-semibold">Precisa de apoio para uma palestra ou oficina?</p>
-                <p className="text-primary-foreground/80">Nosso time envia kits de conscientização digitais em até 48h.</p>
-              </div>
-              <a href="/contact" className="bg-white text-primary px-6 py-3 rounded-md font-semibold shadow">
-                Solicitar kit
-              </a>
-            </CardContent>
-          </Card>
+          <p className="mt-8 text-center text-base text-muted-foreground">
+            Informação salva vidas: compartilhe estes materiais com vizinhos, escolas e nas redes sociais para que mais animais encontrem lares seguros.
+          </p>
         </section>
       </div>
     </div>

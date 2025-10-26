@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -20,6 +21,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { UserPlus } from 'lucide-react';
 import { getAuthErrorMessage } from '@/lib/auth-errors';
+import { HCaptchaChallenge } from '@/components/hcaptcha/challenge';
 
 const registerSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres.'),
@@ -31,6 +33,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const auth = getAuth();
   const firestore = useFirestore();
 
@@ -39,15 +43,68 @@ export default function RegisterPage() {
     defaultValues: { name: '', email: '', password: '' },
   });
 
+  const requestNewCaptcha = useCallback(() => {
+    setCaptchaToken(null);
+    setCaptchaResetKey((prev) => prev + 1);
+  }, []);
+
+  const verifyCaptcha = useCallback(async () => {
+    if (!captchaToken) {
+      toast({
+        variant: 'destructive',
+        title: 'Confirme o hCaptcha',
+        description: 'Resolva o desafio para concluir seu cadastro.',
+      });
+      return false;
+    }
+
+    const tokenToVerify = captchaToken;
+
+    try {
+      const res = await fetch('/api/hcaptcha/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: tokenToVerify }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const details = data?.data?.['error-codes']?.join(', ');
+        toast({
+          variant: 'destructive',
+          title: 'Verificação falhou',
+          description: details ? `hCaptcha retornou: ${details}` : 'Não foi possível validar o hCaptcha.',
+        });
+        requestNewCaptcha();
+        return false;
+      }
+      requestNewCaptcha();
+      return true;
+    } catch (error) {
+      console.error('Erro ao validar hCaptcha', error);
+      toast({
+        variant: 'destructive',
+        title: 'Falha na verificação',
+        description: 'Não conseguimos validar o hCaptcha. Tente novamente.',
+      });
+      requestNewCaptcha();
+      return false;
+    }
+  }, [captchaToken, requestNewCaptcha, toast]);
+
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     setIsLoading(true);
+    const isHuman = await verifyCaptcha();
+    if (!isHuman) {
+      setIsLoading(false);
+      return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       await updateProfile(user, { displayName: values.name });
 
       if (firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDocRef = doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
         const newUser: AppUser = {
             uid: user.uid,
             email: user.email,
@@ -131,7 +188,12 @@ export default function RegisterPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <HCaptchaChallenge
+                onTokenChange={setCaptchaToken}
+                resetSignal={captchaResetKey}
+                description="Confirme que você é humano para concluir o cadastro."
+              />
+              <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
                 <UserPlus className="mr-2 h-4 w-4" /> {isLoading ? 'Cadastrando...' : 'Cadastrar'}
               </Button>
             </form>

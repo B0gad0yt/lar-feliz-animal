@@ -13,6 +13,8 @@ export type Animal = {
   photos: string[]; // data URIs
   shelterId: string;
   createdBy?: string; // UID of the user who created the animal
+  createdAt?: any;
+  updatedAt?: any;
 };
 
 export type Shelter = {
@@ -22,6 +24,8 @@ export type Shelter = {
   phone: string;
   email: string;
   website: string;
+  createdAt?: any;
+  updatedAt?: any;
 };
 
 export type User = {

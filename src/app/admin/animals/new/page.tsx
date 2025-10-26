@@ -6,12 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useUser, useDoc } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import type { CollectionReference, DocumentReference } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
 import { useRef, useMemo, useEffect } from 'react';
-import type { User as AppUser } from '@/lib/types';
+import type { Animal, User as AppUser } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -46,7 +47,10 @@ export default function NewAnimalPage() {
   const { user, loading: userLoading } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const userDocRef = useMemo(() => firestore && user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
+  const userDocRef = useMemo(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
+  }, [firestore, user]);
   const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
 
   const form = useForm<z.infer<typeof animalSchema>>({
@@ -72,8 +76,14 @@ export default function NewAnimalPage() {
   }, [appUser, form]);
 
 
-  const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({ control: form.control, name: "health" });
-  const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({ control: form.control, name: "photos" });
+  const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({
+    control: form.control as any,
+    name: 'health',
+  });
+  const { fields: photoFields, append: appendPhoto, remove: removePhoto } = useFieldArray({
+    control: form.control as any,
+    name: 'photos',
+  });
   const photos = form.watch('photos');
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,7 +115,7 @@ export default function NewAnimalPage() {
 
   const onSubmit = (values: z.infer<typeof animalSchema>) => {
     if (!firestore || !user) return;
-    const collectionRef = collection(firestore, 'animals');
+    const collectionRef = collection(firestore, 'animals') as CollectionReference<Animal>;
     
     addDoc(collectionRef, {
         ...values,

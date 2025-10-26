@@ -1,10 +1,35 @@
-import Emitter from 'tiny-emitter';
+import { TinyEmitter } from 'tiny-emitter';
 import type { FirestorePermissionError } from './errors';
 
 type AppEvents = {
   'permission-error': (error: FirestorePermissionError) => void;
 };
 
-// tiny-emitter doesn't have typed events out of the box, so we cast it.
-// This provides the same level of type safety as the previous implementation.
-export const errorEmitter = new Emitter() as Emitter<AppEvents>;
+type EventKey = keyof AppEvents;
+type EventHandler<K extends EventKey> = AppEvents[K];
+
+class TypedEmitter<TEvents extends Record<string, (...args: any[]) => void>> {
+  private emitter = new TinyEmitter();
+
+  on<K extends keyof TEvents>(event: K, callback: TEvents[K], ctx?: unknown) {
+    this.emitter.on(event as string, callback as (...args: any[]) => void, ctx);
+    return this;
+  }
+
+  once<K extends keyof TEvents>(event: K, callback: TEvents[K], ctx?: unknown) {
+    this.emitter.once(event as string, callback as (...args: any[]) => void, ctx);
+    return this;
+  }
+
+  off<K extends keyof TEvents>(event: K, callback?: TEvents[K]) {
+    this.emitter.off(event as string, callback as (...args: any[]) => void | undefined);
+    return this;
+  }
+
+  emit<K extends keyof TEvents>(event: K, ...args: Parameters<TEvents[K]>) {
+    this.emitter.emit(event as string, ...args);
+    return this;
+  }
+}
+
+export const errorEmitter = new TypedEmitter<AppEvents>();
