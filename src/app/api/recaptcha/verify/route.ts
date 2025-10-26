@@ -1,18 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { RecaptchaEnterpriseServiceClient } from '@google-cloud/recaptcha-enterprise';
 
-const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID ?? process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-const apiKey = process.env.RECAPTCHA_ENTERPRISE_API_KEY;
-const location = process.env.RECAPTCHA_ENTERPRISE_LOCATION || 'global';
+export const runtime = 'nodejs';
+
+let recaptchaClient: RecaptchaEnterpriseServiceClient | null = null;
+let cachedProjectId: string | null = null;
+
+function getClient(params: {
+  projectId: string;
+  clientEmail: string;
+  rawPrivateKey: string;
+}) {
+  if (recaptchaClient && cachedProjectId === params.projectId) {
+    return recaptchaClient;
+  }
+
+  recaptchaClient = new RecaptchaEnterpriseServiceClient({
+    credentials: {
+      client_email: params.clientEmail,
+      private_key: params.rawPrivateKey.replace(/\\n/g, '\n'),
+    },
+    projectId: params.projectId,
+  });
+
+  cachedProjectId = params.projectId;
+  return recaptchaClient;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    if (!projectId || !siteKey || !apiKey) {
+    const projectId =
+      process.env.FIREBASE_ADMIN_PROJECT_ID ?? process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const serverSiteKey =
+      process.env.RECAPTCHA_ENTERPRISE_SITE_KEY ?? process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+    const rawPrivateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+
+    if (!projectId || !serverSiteKey) {
       return NextResponse.json(
         { message: 'Configuração do reCAPTCHA ausente.' },
         { status: 500 }
       );
     }
+
+    if (!clientEmail || !rawPrivateKey) {
+      return NextResponse.json(
+        { message: 'Credenciais do reCAPTCHA não configuradas.' },
+        { status: 500 }
+      );
+    }
+
+    const client = getClient({ projectId, clientEmail, rawPrivateKey });
 
     const body = await req.json();
     const { token, action } = body;
@@ -24,29 +62,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const verifyResponse = await fetch(
-      `https://recaptchaenterprise.googleapis.com/v1/projects/${projectId}/locations/${location}/assessments?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    const [response] = await client.createAssessment({
+      parent: client.projectPath(projectId),
+      assessment: {
+        event: {
+          token,
+          siteKey: serverSiteKey,
         },
-        body: JSON.stringify({
-          event: {
-            token,
-            siteKey,
-            expectedAction: action,
-          },
-        }),
-      }
-    );
-
-    const response = await verifyResponse.json();
-
-    if (!verifyResponse.ok) {
-      const message = response?.error?.message || 'Erro ao verificar o reCAPTCHA.';
-      return NextResponse.json({ message }, { status: 500 });
-    }
+      },
+    });
 
     if (!response.tokenProperties?.valid) {
       return NextResponse.json(
@@ -55,7 +79,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (response.tokenProperties?.action !== action) {
+    if (response.tokenProperties.action !== action) {
       return NextResponse.json(
         { message: 'Ação do reCAPTCHA não corresponde.' },
         { status: 400 }
