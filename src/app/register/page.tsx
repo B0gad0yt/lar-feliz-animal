@@ -105,6 +105,9 @@ export default function RegisterPage() {
       const user = userCredential.user;
       await updateProfile(user, { displayName: values.name });
 
+      // Enviar email de verificação
+      await sendEmailVerification(user);
+
       if (firestore) {
         const userDocRef = doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
         const newUser: AppUser = {
@@ -125,8 +128,14 @@ export default function RegisterPage() {
         });
       }
       
-      toast({ title: 'Cadastro realizado com sucesso!' });
-      router.push('/');
+      toast({
+        title: 'Cadastro realizado!',
+        description: 'Enviamos um email de verificação. Confirme seu email para acessar o sistema.'
+      });
+      
+      // Fazer logout para forçar a verificação
+      await auth.signOut();
+      router.push('/login');
     } catch (error: any) {
       console.error(error);
       toast({
