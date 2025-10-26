@@ -102,6 +102,17 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     };
   }, [widgetElement]);
 
+  // Dev-only fallback: allow bypassing ALTCHA during local development or when
+  // NEXT_PUBLIC_ALTCHA_BYPASS=true. This helps testing the form without a
+  // configured HMAC key. In production this won't run.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const bypass = process.env.NEXT_PUBLIC_ALTCHA_BYPASS === 'true' || process.env.NODE_ENV === 'development';
+    if (bypass) {
+      setAltchaPayload((p) => p ?? 'dev-bypass-token');
+    }
+  }, []);
+
   if (animalLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
