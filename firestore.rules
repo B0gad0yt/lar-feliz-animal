@@ -44,10 +44,7 @@ service cloud.firestore {
 
       allow create: if request.auth != null &&
         request.resource.data.applicantId == request.auth.uid &&
-        request.resource.data.status == 'pending' &&
-        // require a valid hcaptcha token (non-empty string)
-        request.resource.data.keys().hasAll(['hcaptchaToken']) &&
-        request.resource.data.hcaptchaToken is string && request.resource.data.hcaptchaToken.size() > 0;
+        request.resource.data.status == 'pending';
 
       allow update: if request.auth != null &&
         (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid)) &&
