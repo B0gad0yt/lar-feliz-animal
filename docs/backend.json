@@ -86,11 +86,11 @@
         "hasOtherPets": { "type": "string" },
         "reason": { "type": "string" },
         "agreement": { "type": "boolean" },
-        "altchaPayload": { "type": "string" },
+  "hcaptchaToken": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "accepted", "adopted"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["animalId", "shelterId", "shelterAdminId", "applicantId", "fullName", "email", "status", "altchaPayload"]
+  "required": ["animalId", "shelterId", "shelterAdminId", "applicantId", "fullName", "email", "status", "hcaptchaToken"]
     }
   },
   "auth": {

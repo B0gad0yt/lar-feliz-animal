@@ -45,9 +45,9 @@ service cloud.firestore {
       allow create: if request.auth != null &&
         request.resource.data.applicantId == request.auth.uid &&
         request.resource.data.status == 'pending' &&
-        request.resource.data.keys().hasAll(['altchaPayload']) &&
-        request.resource.data.altchaPayload is string &&
-        request.resource.data.altchaPayload.size() > 0;
+        // require a valid hcaptcha token (non-empty string)
+        request.resource.data.keys().hasAll(['hcaptchaToken']) &&
+        request.resource.data.hcaptchaToken is string && request.resource.data.hcaptchaToken.size() > 0;
 
       allow update: if request.auth != null &&
         (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid)) &&
@@ -56,8 +56,14 @@ service cloud.firestore {
         request.resource.data.shelterAdminId == resource.data.shelterAdminId &&
         request.resource.data.status in ['pending', 'accepted', 'adopted'] &&
         (
-          (resource.data.keys().hasAny(['altchaPayload']) && request.resource.data.altchaPayload == resource.data.altchaPayload) ||
-          (!resource.data.keys().hasAny(['altchaPayload']) && !request.resource.data.keys().hasAny(['altchaPayload']))
+          // allow update only if the verification token remains the same (hcaptchaToken),
+          // or if neither verification token exists on resource and request
+          (
+            resource.data.keys().hasAny(['hcaptchaToken']) && request.resource.data.keys().hasAny(['hcaptchaToken']) && request.resource.data.hcaptchaToken == resource.data.hcaptchaToken
+          ) ||
+          (
+            !resource.data.keys().hasAny(['hcaptchaToken']) && !request.resource.data.keys().hasAny(['hcaptchaToken'])
+          )
         );
 
       allow delete: if request.auth != null &&
