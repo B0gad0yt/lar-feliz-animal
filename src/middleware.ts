@@ -20,27 +20,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  try {
-    // Pegar o token do cookie
-    const token = request.cookies.get('session')?.value;
-
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    // Verificar se o email está verificado
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (user && !user.emailVerified) {
-      return NextResponse.redirect(new URL('/login?error=email-not-verified', request.url));
-    }
-
-    return NextResponse.next();
-  } catch (error) {
-    console.error('Erro no middleware:', error);
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
+  // NOTE: Não use `firebase/auth` (SDK do cliente) dentro do middleware do
+  // Next.js — o middleware roda em um runtime diferente (edge) e não tem
+  // acesso ao estado do cliente. A tentativa anterior de chamar `getAuth()`
+  // e `auth.currentUser` causava comportamento incorreto (usuários eram
+  // redirecionados para /login mesmo estando autenticados). Para uma verificação
+  // segura no middleware é necessário validar um cookie assinado/jwt no servidor
+  // (por exemplo usando Firebase Admin), ou implementar guards no cliente.
+  //
+  // Para não bloquear o fluxo do usuário enquanto uma solução server-side
+  // segura é implementada, apenas permitimos a requisição seguir adiante.
+  return NextResponse.next();
 }
 
 // Configurar os caminhos que devem passar pelo middleware

@@ -105,6 +105,14 @@ export function HCaptchaChallenge({
   }, [handleTokenChange, scriptReady, siteKey]);
 
   useEffect(() => {
+    // If the global `hcaptcha` object is already present (script loaded by a
+    // previous client-side navigation), mark the script as ready so we can
+    // render the widget immediately. This fixes the case where the Script
+    // onLoad handler is not called because the script was already injected.
+    if (typeof window !== 'undefined' && (window as any).hcaptcha) {
+      setScriptReady(true);
+    }
+
     renderCaptcha();
 
     return () => {
