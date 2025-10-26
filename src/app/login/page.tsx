@@ -181,7 +181,13 @@ export default function LoginPage() {
 
       if (!credential.user.emailVerified) {
         try {
-          await sendEmailVerification(credential.user);
+          const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'http://localhost:3000';
+          const actionCodeSettings = {
+            url: `${appOrigin}/verify-email`,
+            handleCodeInApp: true,
+          };
+
+          await sendEmailVerification(credential.user, actionCodeSettings);
           toast({
             title: 'Confirme seu email',
             description: 'Enviamos um novo link de verificação. Após confirmar, faça login novamente.',

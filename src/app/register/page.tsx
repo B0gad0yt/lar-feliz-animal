@@ -108,7 +108,13 @@ export default function RegisterPage() {
       await updateProfile(user, { displayName: values.name });
 
       // Enviar email de verificação
-      await sendEmailVerification(user);
+      const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'http://localhost:3000';
+      const actionCodeSettings = {
+        url: `${appOrigin}/verify-email`,
+        handleCodeInApp: true,
+      };
+
+      await sendEmailVerification(user, actionCodeSettings);
 
       if (firestore) {
         const userDocRef = doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
