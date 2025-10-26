@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { LogIn, MailCheck, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertTriangle, LogIn, MailCheck, RefreshCw, Sparkles } from 'lucide-react';
 import { getAuthErrorMessage } from '@/lib/auth-errors';
 import { HCaptchaChallenge } from '@/components/hcaptcha/challenge';
 import { AuthMarketingPanel } from '@/components/auth/marketing-panel';
@@ -64,15 +64,25 @@ const GoogleIcon = () => (
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [showVerificationNeeded, setShowVerificationNeeded] = useState(false);
   const [statusAlert, setStatusAlert] = useState<{
     variant?: 'default' | 'destructive';
     title: string;
     description: string;
   } | null>(null);
+
+  // Mostrar alerta se vier do registro ou se tentou acessar sem verificar
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'email-not-verified') {
+      setShowVerificationNeeded(true);
+    }
+  }, [searchParams]);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const auth = getAuth();
   const firestore = useFirestore();
@@ -285,6 +295,17 @@ export default function LoginPage() {
               <MailCheck className="h-4 w-4" />
               <AlertTitle>{statusAlert.title}</AlertTitle>
               <AlertDescription>{statusAlert.description}</AlertDescription>
+            </Alert>
+          )}
+
+          {showVerificationNeeded && (
+            <Alert variant="destructive" className="mt-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Email não verificado</AlertTitle>
+              <AlertDescription>
+                Você precisa verificar seu email antes de fazer login. 
+                Verifique sua caixa de entrada e spam. Se necessário, tente fazer login para receber um novo link de verificação.
+              </AlertDescription>
             </Alert>
           )}
 

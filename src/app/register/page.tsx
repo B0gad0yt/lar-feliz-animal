@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -20,7 +20,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, UserPlus } from 'lucide-react';
+import { AlertTriangle, Sparkles, UserPlus } from 'lucide-react';
 import { getAuthErrorMessage } from '@/lib/auth-errors';
 import { HCaptchaChallenge } from '@/components/hcaptcha/challenge';
 import { AuthMarketingPanel } from '@/components/auth/marketing-panel';
@@ -37,6 +37,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [showVerificationAlert, setShowVerificationAlert] = useState(false);
   const auth = getAuth();
   const firestore = useFirestore();
 
@@ -134,8 +135,13 @@ export default function RegisterPage() {
       });
       
       // Fazer logout para forçar a verificação
+      setShowVerificationAlert(true);
       await auth.signOut();
-      router.push('/login');
+      
+      // Dar tempo para o usuário ler o alerta antes de redirecionar
+      setTimeout(() => {
+        router.push('/login');
+      }, 5000);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -164,6 +170,17 @@ export default function RegisterPage() {
               Cadastre-se para salvar favoritos, acompanhar pedidos e colaborar com a comunidade de adoção responsável.
             </p>
           </div>
+
+          {showVerificationAlert && (
+            <Alert variant="destructive" className="mt-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Verifique seu email</AlertTitle>
+              <AlertDescription>
+                Enviamos um link de confirmação para seu email. Você precisa verificar seu email antes de fazer login.
+                Por favor, verifique também sua caixa de spam.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Card className="mt-6 border border-border/60 bg-card/80 shadow-lg">
             <CardContent className="space-y-6 p-6 sm:p-8">
