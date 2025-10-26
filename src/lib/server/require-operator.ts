@@ -1,5 +1,3 @@
-'use server';
-
 import { type NextRequest } from 'next/server';
 import { getAdminServices } from '@/lib/firebase-admin';
 import type { User as AppUser } from '@/lib/types';
