@@ -6,7 +6,15 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, type UserCredential } from 'firebase/auth';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  type UserCredential,
+} from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -16,11 +24,13 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import type { User as AppUser } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { LogIn } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { LogIn, ShieldCheck, MailCheck, RefreshCw, Sparkles, Clock } from 'lucide-react';
 import { getAuthErrorMessage } from '@/lib/auth-errors';
 import { HCaptchaChallenge } from '@/components/hcaptcha/challenge';
 
@@ -50,6 +60,37 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const HIGHLIGHT_STATS = [
+  {
+    label: 'Adoções em andamento',
+    value: '128',
+    helper: '+18% este mês',
+  },
+  {
+    label: 'Solicitações respondidas',
+    value: '92%',
+    helper: 'em menos de 24h',
+  },
+];
+
+const FEATURE_LIST = [
+  {
+    icon: ShieldCheck,
+    title: 'Segurança reforçada',
+    description: 'Login com hCaptcha e detecção de acessos suspeitos em tempo real.',
+  },
+  {
+    icon: MailCheck,
+    title: 'Fluxo verificado',
+    description: 'Envio automático de confirmação de email usando o SMTP do Firebase.',
+  },
+  {
+    icon: Clock,
+    title: 'Retomada rápida',
+    description: 'Reset de senha instantâneo para evitar perda de acesso ao painel.',
+  },
+];
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,6 +98,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [statusAlert, setStatusAlert] = useState<{
+    variant?: 'default' | 'destructive';
+    title: string;
+    description: string;
+  } | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const auth = getAuth();
   const firestore = useFirestore();
 
@@ -113,6 +160,34 @@ export default function LoginPage() {
     }
   }, [captchaToken, requestNewCaptcha, toast]);
 
+  const handlePasswordReset = async () => {
+    const email = form.getValues('email');
+    if (!email) {
+      form.setError('email', { type: 'manual', message: 'Informe seu email para recuperar a senha.' });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({ title: 'Link enviado', description: 'Verifique sua caixa de entrada e siga as instruções.' });
+      setStatusAlert({
+        variant: 'default',
+        title: 'Email de redefinição enviado',
+        description: 'Caso não encontre, confira a pasta de spam ou utilize outro endereço.',
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível enviar o link',
+        description: getAuthErrorMessage(error, 'Confira se o email está correto.'),
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     const isHuman = await verifyCaptcha();
@@ -121,7 +196,34 @@ export default function LoginPage() {
       return;
     }
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      setStatusAlert(null);
+      const credential = await signInWithEmailAndPassword(auth, values.email, values.password);
+
+      if (!credential.user.emailVerified) {
+        try {
+          await sendEmailVerification(credential.user);
+          toast({
+            title: 'Confirme seu email',
+            description: 'Enviamos um novo link de verificação. Após confirmar, faça login novamente.',
+          });
+          setStatusAlert({
+            variant: 'default',
+            title: 'Email pendente de verificação',
+            description: 'Abra o link enviado agora há pouco para liberar o acesso ao painel.',
+          });
+        } catch (verificationError: any) {
+          console.error(verificationError);
+          toast({
+            variant: 'destructive',
+            title: 'Não foi possível reenviar o email',
+            description: getAuthErrorMessage(verificationError, 'Tente novamente em alguns instantes.'),
+          });
+        } finally {
+          await auth.signOut();
+        }
+        return;
+      }
+
       toast({ title: 'Login realizado com sucesso!' });
       router.push('/');
     } catch (error: any) {
@@ -192,74 +294,138 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-8 sm:py-12">
-      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border border-border/40 shadow-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-headline">Login</CardTitle>
-          <CardDescription>Acesse sua conta para continuar</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6 p-6 sm:p-8">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="seu@email.com" {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Senha</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Sua senha" {...field} disabled={isLoading} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <HCaptchaChallenge
-                onTokenChange={setCaptchaToken}
-                resetSignal={captchaResetKey}
-                description="Resolva o desafio para liberar o acesso ao login."
-              />
-              <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
-                <LogIn className="mr-2 h-4 w-4" /> {isLoading ? 'Entrando...' : 'Entrar'}
-              </Button>
-            </form>
-          </Form>
-
-          <div className="relative my-6">
-            <Separator />
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Ou continue com</span>
-            </div>
+    <div className="relative isolate min-h-[calc(100vh-8rem)] bg-muted/40 px-4 py-10 sm:py-16">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.15),_transparent_55%)]" aria-hidden />
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-1 overflow-hidden rounded-3xl border border-border/60 bg-background shadow-2xl backdrop-blur lg:grid-cols-[1.2fr,1fr]">
+        <section className="relative hidden flex-col justify-between gap-10 bg-gradient-to-br from-primary via-primary/90 to-primary-foreground/40 p-8 text-white lg:flex">
+          <div>
+            <Badge variant="secondary" className="bg-white/20 text-white">
+              Portal seguro
+            </Badge>
+            <h2 className="mt-4 text-3xl font-headline font-semibold leading-tight">
+              Operações com governança e transparência
+            </h2>
+            <p className="mt-3 max-w-lg text-sm text-white/80">
+              Centralize solicitações de adoção, valide identidades e mantenha o time sincronizado com alertas em tempo real.
+            </p>
+            <ul className="mt-8 space-y-4">
+              {FEATURE_LIST.map((feature) => (
+                <li key={feature.title} className="flex gap-4">
+                  <div className="rounded-full bg-white/15 p-2">
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium">{feature.title}</p>
+                    <p className="text-sm text-white/70">{feature.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-          
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || !captchaToken}>
-            <GoogleIcon /> Google
-          </Button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {HIGHLIGHT_STATS.map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-white/20 bg-white/10 p-4 text-white shadow-inner">
+                <p className="text-xs uppercase tracking-wide text-white/70">{stat.label}</p>
+                <p className="mt-2 text-3xl font-headline font-semibold">{stat.value}</p>
+                <p className="text-sm text-white/80">{stat.helper}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="p-6 sm:p-8">
+          <div className="space-y-2">
+            <Badge variant="outline" className="border-primary/50 text-primary">
+              <Sparkles className="mr-1 h-3.5 w-3.5" /> Experiência renovada
+            </Badge>
+            <h1 className="text-3xl font-headline font-semibold">Entre no painel</h1>
+            <p className="text-sm text-muted-foreground">
+              Valide seu email, conclua o hCaptcha e destrave todos os recursos para operadores e abrigos.
+            </p>
+          </div>
+
+          {statusAlert && (
+            <Alert variant={statusAlert.variant} className="mt-6 border-primary/40 bg-primary/5">
+              <MailCheck className="h-4 w-4" />
+              <AlertTitle>{statusAlert.title}</AlertTitle>
+              <AlertDescription>{statusAlert.description}</AlertDescription>
+            </Alert>
+          )}
+
+          <Card className="mt-6 border border-border/60 bg-card/80 shadow-lg">
+            <CardContent className="space-y-6 p-6 sm:p-8">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="seu@email.com" {...field} disabled={isLoading} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel>Senha</FormLabel>
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="px-0 text-xs font-semibold"
+                            onClick={handlePasswordReset}
+                            disabled={isResettingPassword}
+                          >
+                            <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                            {isResettingPassword ? 'Enviando...' : 'Esqueci minha senha'}
+                          </Button>
+                        </div>
+                        <FormControl>
+                          <Input type="password" placeholder="Sua senha" {...field} disabled={isLoading} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <HCaptchaChallenge
+                    onTokenChange={setCaptchaToken}
+                    resetSignal={captchaResetKey}
+                    description="Resolva o desafio para liberar o acesso ao login."
+                  />
+                  <Button type="submit" className="w-full" disabled={isLoading || !captchaToken}>
+                    <LogIn className="mr-2 h-4 w-4" /> {isLoading ? 'Entrando...' : 'Entrar'}
+                  </Button>
+                </form>
+              </Form>
+
+              <div className="relative my-2 text-center text-xs uppercase text-muted-foreground">
+                <Separator />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2">
+                  Ou continue com
+                </span>
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || !captchaToken}>
+                <GoogleIcon /> Google
+              </Button>
+            </CardContent>
+          </Card>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Não tem uma conta?{' '}
-            <Link href="/register" className="underline hover:text-primary">
+            Não tem uma conta?
+            <Link href="/register" className="ml-1 font-medium text-primary underline-offset-4 hover:underline">
               Cadastre-se
             </Link>
           </p>
-        </CardContent>
-      </Card>
+        </section>
+      </div>
     </div>
   );
 }

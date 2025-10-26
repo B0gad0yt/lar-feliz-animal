@@ -23,7 +23,9 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users, Inbox, Check, Ban, HeartHandshake } from 'lucide-react';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users, Inbox, Check, Ban, HeartHandshake, Activity, TrendingUp } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import type { Animal, User as AppUser, Shelter, SiteConfig, AdoptionApplication } from '@/lib/types';
 import {
@@ -47,23 +49,382 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
+const ADOPTION_CHART_CONFIG: ChartConfig = {
+  pending: {
+    label: 'Pendentes',
+    color: '#fb923c',
+  },
+  accepted: {
+    label: 'Aceitos',
+    color: '#6366f1',
+  },
+  adopted: {
+    label: 'Concluídos',
+    color: '#10b981',
+  },
+};
 
-function AnimalsTab({ appUser }: { appUser: AppUser }) {
+const SPECIES_COLORS: Record<Animal['species'], string> = {
+  Cachorro: '#f97316',
+  Gato: '#a855f7',
+  Coelho: '#22d3ee',
+};
+
+const toDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function') {
+    try {
+      return value.toDate();
+    } catch (error) {
+      return null;
+    }
+  }
+  if (typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+};
+
+type DashboardOverviewProps = {
+  appUser: AppUser;
+  animals?: Animal[] | null;
+  animalsLoading: boolean;
+  applications?: AdoptionApplication[] | null;
+  applicationsLoading: boolean;
+  shelters?: Shelter[] | null;
+  sheltersLoading: boolean;
+};
+
+function DashboardOverview({
+  appUser,
+  animals,
+  animalsLoading,
+  applications,
+  applicationsLoading,
+  shelters,
+  sheltersLoading,
+}: DashboardOverviewProps) {
+  const totalAnimals = animals?.length ?? 0;
+  const totalApplications = applications?.length ?? 0;
+  const pendingApplications = (applications ?? []).filter((item) => item.status === 'pending');
+  const acceptedApplications = (applications ?? []).filter((item) => item.status === 'accepted');
+  const adoptedApplications = (applications ?? []).filter((item) => item.status === 'adopted');
+  const adoptionRate = totalApplications ? Math.round((adoptedApplications.length / totalApplications) * 100) : 0;
+
+  const respondedApplications = (applications ?? []).filter((item) => item.handledAt && item.createdAt);
+  const responseTotals = respondedApplications.reduce(
+    (acc, application) => {
+      const createdAt = toDate(application.createdAt);
+      const handledAt = toDate(application.handledAt);
+      if (!createdAt || !handledAt) {
+        return acc;
+      }
+      return {
+        total: acc.total + (handledAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60),
+        count: acc.count + 1,
+      };
+    },
+    { total: 0, count: 0 }
+  );
+  const avgResponseHours = responseTotals.count ? responseTotals.total / responseTotals.count : null;
+
+  const avgResponseLabel = avgResponseHours === null
+    ? '—'
+    : avgResponseHours >= 24
+      ? `${(avgResponseHours / 24).toFixed(1)} d`
+      : `${avgResponseHours.toFixed(1)} h`;
+
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(now.getDate() - 7);
+  weekAgo.setHours(0, 0, 0, 0);
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const animalsThisWeek = (animals ?? []).filter((animal) => {
+    const created = toDate(animal.createdAt);
+    return created && created >= weekAgo;
+  }).length;
+
+  const newApplicationsToday = (applications ?? []).filter((application) => {
+    const created = toDate(application.createdAt);
+    return created && created >= startOfToday;
+  }).length;
+
+  const sheltersWithPending = new Set(pendingApplications.map((item) => item.shelterId)).size;
+  const overviewLoading = animalsLoading || applicationsLoading;
+
+  const formatNumber = (value: number) => value.toLocaleString('pt-BR');
+
+  const summaryCards = [
+    {
+      label: 'Animais ativos',
+      value: overviewLoading ? '—' : formatNumber(totalAnimals),
+      helper: overviewLoading
+        ? 'Atualizando dados...'
+        : animalsThisWeek > 0
+          ? `${animalsThisWeek} novos nesta semana`
+          : 'Sem novos cadastros na semana',
+      icon: Bone,
+    },
+    {
+      label: 'Pedidos pendentes',
+      value: overviewLoading ? '—' : formatNumber(pendingApplications.length),
+      helper: overviewLoading
+        ? 'Consolidando fila...'
+        : newApplicationsToday > 0
+          ? `${newApplicationsToday} novos hoje`
+          : 'Nenhum pedido novo hoje',
+      icon: Inbox,
+    },
+    {
+      label: 'Tempo médio de resposta',
+      value: overviewLoading ? '—' : avgResponseLabel,
+      helper: overviewLoading
+        ? 'Calculando...'
+        : responseTotals.count
+          ? `Baseado em ${responseTotals.count} pedidos`
+          : 'Ainda sem respostas registradas',
+      icon: Activity,
+    },
+  ];
+
+  if (appUser.role === 'operator') {
+    const sheltersCount = shelters?.length ?? 0;
+    summaryCards.push({
+      label: 'Abrigos conectados',
+      value: sheltersLoading ? '—' : formatNumber(sheltersCount),
+      helper: sheltersLoading
+        ? 'Carregando abrigos...'
+        : sheltersCount === 0
+          ? 'Convide novos parceiros'
+          : sheltersWithPending > 0
+            ? `${sheltersWithPending} com pendências`
+            : 'Tudo em dia!',
+      icon: Home,
+    });
+  } else {
+    summaryCards.push({
+      label: 'Adoções concluídas',
+      value: overviewLoading ? '—' : formatNumber(adoptedApplications.length),
+      helper: overviewLoading
+        ? 'Atualizando...'
+        : totalApplications
+          ? `Conversão de ${adoptionRate}%`
+          : 'Aguarde novos contatos',
+      icon: HeartHandshake,
+    });
+  }
+
+  const adoptionTrend = useMemo(() => {
+    if (!applications || applications.length === 0) return [];
+    const months: { key: string; label: string }[] = [];
+    const reference = new Date();
+    reference.setDate(1);
+    for (let diff = 5; diff >= 0; diff -= 1) {
+      const date = new Date(reference.getFullYear(), reference.getMonth() - diff, 1);
+      months.push({
+        key: `${date.getFullYear()}-${date.getMonth()}`,
+        label: date.toLocaleDateString('pt-BR', { month: 'short' }),
+      });
+    }
+
+    return months.map(({ key, label }) => {
+      const counters: Record<'pending' | 'accepted' | 'adopted', number> = {
+        pending: 0,
+        accepted: 0,
+        adopted: 0,
+      };
+
+      applications.forEach((application) => {
+        const created = toDate(application.createdAt);
+        if (!created) return;
+        const createdKey = `${created.getFullYear()}-${created.getMonth()}`;
+        if (createdKey === key) {
+          counters[application.status] += 1;
+        }
+      });
+
+      const labelNormalized = label.charAt(0).toUpperCase() + label.slice(1);
+      return {
+        month: labelNormalized,
+        ...counters,
+      };
+    });
+  }, [applications]);
+
+  const hasTrendData = adoptionTrend.some((entry) => entry.pending || entry.accepted || entry.adopted);
+
+  const speciesDistribution = useMemo(() => {
+    if (!animals || animals.length === 0) return [];
+    const counts: Record<string, number> = {};
+    animals.forEach((animal) => {
+      counts[animal.species] = (counts[animal.species] ?? 0) + 1;
+    });
+    return Object.entries(counts).map(([species, value]) => ({
+      species,
+      value,
+      fill: SPECIES_COLORS[species as Animal['species']] ?? '#64748b',
+      percentage: totalAnimals ? Math.round((value / totalAnimals) * 100) : 0,
+    }));
+  }, [animals, totalAnimals]);
+
+  const speciesChartConfig = useMemo(() => {
+    return speciesDistribution.reduce((config, item) => {
+      config[item.species] = { label: item.species, color: item.fill };
+      return config;
+    }, {} as ChartConfig);
+  }, [speciesDistribution]);
+
+  const highlightCopy = appUser.role === 'operator'
+    ? 'Monitore os indicadores da plataforma e antecipe gargalos dos abrigos parceiros.'
+    : 'Acompanhe a jornada dos seus animais e mantenha os pedidos respondidos rapidamente.';
+
+  return (
+    <section className="space-y-6 mb-10">
+      <div className="rounded-3xl border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 md:p-8 shadow-inner">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/60">Visão Geral</p>
+            <h2 className="mt-2 text-3xl font-headline font-semibold">
+              Olá, {appUser.displayName || 'time'} 👋
+            </h2>
+            <p className="mt-3 max-w-2xl text-base text-muted-foreground">{highlightCopy}</p>
+          </div>
+          <div className="flex w-full flex-col gap-4 rounded-2xl border border-white/20 bg-white/70 p-4 text-right shadow-sm backdrop-blur md:w-auto md:flex-row md:items-center md:text-left">
+            <div>
+              <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <TrendingUp className="h-4 w-4 text-primary" /> Conversão
+              </p>
+              <p className="text-3xl font-bold">{overviewLoading ? '—' : `${adoptionRate}%`}</p>
+              <p className="text-xs text-muted-foreground">
+                {overviewLoading ? 'Consolidando histórico...' : `${acceptedApplications.length} aprovações recentes`}
+              </p>
+            </div>
+            <div className="h-10 w-px bg-border hidden md:block" aria-hidden />
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fila pendente</p>
+              <p className="text-3xl font-bold">{overviewLoading ? '—' : pendingApplications.length.toLocaleString('pt-BR')}</p>
+              <p className="text-xs text-muted-foreground">
+                {overviewLoading ? 'Carregando...' : 'Prontos para análise'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {summaryCards.map((card) => (
+          <Card key={card.label} className="border border-border/60 bg-card/80 shadow-sm">
+            <CardContent className="flex items-start gap-4 p-5">
+              <div className="rounded-full bg-primary/10 p-3 text-primary">
+                <card.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{card.label}</p>
+                <p className="text-2xl font-bold mt-1">{card.value}</p>
+                <p className="text-sm text-muted-foreground">{card.helper}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2 border border-border/60 bg-card/80 shadow-sm">
+          <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Fluxo de pedidos</CardTitle>
+              <CardDescription>Quantidade mensal por status (últimos 6 meses)</CardDescription>
+            </div>
+            <Badge variant="secondary" className="w-fit">
+              {overviewLoading ? '—' : `${totalApplications} pedidos`}
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            {applicationsLoading ? (
+              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+                Carregando dados em tempo real...
+              </div>
+            ) : hasTrendData ? (
+              <ChartContainer config={ADOPTION_CHART_CONFIG} className="h-[300px]">
+                <BarChart data={adoptionTrend} barCategoryGap={16}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/60" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tickMargin={10} className="text-xs" />
+                  <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'rgba(148, 163, 184, 0.15)' }} />
+                  <Bar dataKey="pending" fill="var(--color-pending)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="accepted" fill="var(--color-accepted)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="adopted" fill="var(--color-adopted)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-[280px] flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+                <p>Aguardando histórico suficiente para desenhar o gráfico.</p>
+                <p className="text-xs">Responda a mais pedidos para desbloquear esta visualização.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/60 bg-card/80 shadow-sm">
+          <CardHeader>
+            <CardTitle>Composição do catálogo</CardTitle>
+            <CardDescription>Distribuição por espécie disponível hoje</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {animalsLoading ? (
+              <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+                Atualizando inventário...
+              </div>
+            ) : speciesDistribution.length ? (
+              <ChartContainer config={speciesChartConfig} className="mx-auto h-[240px] max-w-[260px]">
+                <PieChart>
+                  <Pie data={speciesDistribution} dataKey="value" nameKey="species" innerRadius={60} strokeWidth={8}>
+                    {speciesDistribution.map((entry) => (
+                      <Cell key={entry.species} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+                Cadastre um animal para visualizar a distribuição.
+              </div>
+            )}
+            <div className="space-y-3">
+              {speciesDistribution.length ? (
+                speciesDistribution.map((item) => (
+                  <div key={item.species} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
+                      <span className="font-medium">{item.species}</span>
+                    </div>
+                    <span className="text-muted-foreground">{item.percentage}%</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Sem animais disponíveis no momento.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+
+function AnimalsTab({ appUser, animals, animalsLoading }: { appUser: AppUser; animals: Animal[]; animalsLoading: boolean }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-
-  const animalsQuery = useMemo(() => {
-    if (!firestore || !appUser) return null;
-    const animalsCollection = collection(firestore, 'animals') as CollectionReference<Animal>;
-    if (appUser.role === 'operator') {
-      return animalsCollection;
-    }
-    // For shelterAdmin, filter by createdBy
-    return query(animalsCollection, where("createdBy", "==", appUser.uid));
-  }, [firestore, appUser]);
-
-  const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
 
   const handleDelete = () => {
     if (!firestore || !itemToDelete) return;
@@ -88,7 +449,7 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
   if (animalsLoading) {
      return <div className="text-center p-8">Carregando animais...</div>;
   }
-  
+
   return (
     <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -120,45 +481,51 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {animals && animals.map((animal) => {
-                            return (
-                                <TableRow key={animal.id}>
-                                    <TableCell className="hidden sm:table-cell">
-                                        {animal.photos[0] && <Image
-                                        alt={animal.name}
-                                        className="aspect-square rounded-md object-cover"
-                                        height="64"
-                                        src={animal.photos[0]}
-                                        width="64"
-                                        />}
-                                    </TableCell>
-                                    <TableCell className="font-medium">{animal.name}</TableCell>
-                                    <TableCell>{animal.species}</TableCell>
-                                    <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                        <Badge variant="outline">Disponível</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                                <span className="sr-only">Toggle menu</span>
-                                            </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
-                                                    <Edit className="mr-2 h-4 w-4" />Editar
-                                                </Link></DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={() => setItemToDelete(animal.id as string)}>
-                                                    <Trash className="mr-2 h-4 w-4" />Excluir
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        })}
+                        {animals.length ? (
+                          animals.map((animal) => (
+                            <TableRow key={animal.id}>
+                              <TableCell className="hidden sm:table-cell">
+                                  {animal.photos[0] && <Image
+                                  alt={animal.name}
+                                  className="aspect-square rounded-md object-cover"
+                                  height="64"
+                                  src={animal.photos[0]}
+                                  width="64"
+                                  />}
+                              </TableCell>
+                              <TableCell className="font-medium">{animal.name}</TableCell>
+                              <TableCell>{animal.species}</TableCell>
+                              <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                  <Badge variant="outline">Disponível</Badge>
+                              </TableCell>
+                              <TableCell>
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                      <Button aria-haspopup="true" size="icon" variant="ghost">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                          <span className="sr-only">Toggle menu</span>
+                                      </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                          <DropdownMenuItem asChild><Link href={`/admin/animals/edit/${animal.id}`} className="cursor-pointer">
+                                              <Edit className="mr-2 h-4 w-4" />Editar
+                                          </Link></DropdownMenuItem>
+                                          <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={() => setItemToDelete(animal.id as string)}>
+                                              <Trash className="mr-2 h-4 w-4" />Excluir
+                                          </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                              </TableCell>
+                          </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                              Nenhum animal cadastrado ainda.
+                            </TableCell>
+                          </TableRow>
+                        )}
                     </TableBody>
                 </Table>
            </div>
@@ -182,26 +549,15 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
   )
 }
 
-function ApplicationsTab({ appUser }: { appUser: AppUser }) {
+function ApplicationsTab({ appUser, applications, applicationsLoading }: { appUser: AppUser; applications: AdoptionApplication[]; applicationsLoading: boolean }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [adoptingId, setAdoptingId] = useState<string | null>(null);
 
-  const applicationsQuery = useMemo(() => {
-    if (!firestore || !appUser) return null;
-    const applicationsRef = collection(firestore, 'adoptionApplications') as CollectionReference<AdoptionApplication>;
-    if (appUser.role === 'operator') {
-      return applicationsRef;
-    }
-    return query(applicationsRef, where('shelterAdminId', '==', appUser.uid));
-  }, [firestore, appUser]);
-
-  const { data: applications, loading: applicationsLoading } = useCollection<AdoptionApplication>(applicationsQuery);
-
-  const pendingApplications = applications?.filter((item) => item.status === 'pending') ?? [];
-  const acceptedApplications = applications?.filter((item) => item.status === 'accepted') ?? [];
+  const pendingApplications = applications.filter((item) => item.status === 'pending');
+  const acceptedApplications = applications.filter((item) => item.status === 'accepted');
 
   const handleStatusChange = async (application: AdoptionApplication, status: 'pending' | 'accepted' | 'adopted') => {
     if (!firestore || !application.id) return;
@@ -787,13 +1143,10 @@ function UsersTab() {
   )
 }
 
-function SheltersTab() {
+function SheltersTab({ shelters, sheltersLoading }: { shelters: Shelter[]; sheltersLoading: boolean }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-
-  const sheltersQuery = useMemo(() => (firestore ? (collection(firestore, 'shelters') as CollectionReference<Shelter>) : null), [firestore]);
-  const { data: shelters, loading: sheltersLoading } = useCollection<Shelter>(sheltersQuery);
 
   const handleDelete = () => {
     if (!firestore || !itemToDelete) return;
@@ -844,7 +1197,8 @@ function SheltersTab() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {shelters && shelters.map((shelter) => (
+                        {shelters.length ? (
+                          shelters.map((shelter) => (
                             <TableRow key={shelter.id}>
                                 <TableCell className="font-medium">{shelter.name}</TableCell>
                                 <TableCell>{shelter.email}</TableCell>
@@ -868,7 +1222,14 @@ function SheltersTab() {
                                     </DropdownMenu>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                              Nenhum abrigo cadastrado ainda.
+                            </TableCell>
+                          </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </div>
@@ -1065,6 +1426,30 @@ export default function AdminPage() {
     }
   }, [user, userLoading, appUser, appUserLoading, router]);
 
+  const animalsQuery = useMemo(() => {
+    if (!firestore || !appUser) return null;
+    const animalsCollection = collection(firestore, 'animals') as CollectionReference<Animal>;
+    return appUser.role === 'operator'
+      ? animalsCollection
+      : query(animalsCollection, where('createdBy', '==', appUser.uid));
+  }, [firestore, appUser]);
+  const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
+
+  const applicationsQuery = useMemo(() => {
+    if (!firestore || !appUser) return null;
+    const applicationsRef = collection(firestore, 'adoptionApplications') as CollectionReference<AdoptionApplication>;
+    return appUser.role === 'operator'
+      ? applicationsRef
+      : query(applicationsRef, where('shelterAdminId', '==', appUser.uid));
+  }, [firestore, appUser]);
+  const { data: applications, loading: applicationsLoading } = useCollection<AdoptionApplication>(applicationsQuery);
+
+  const sheltersQuery = useMemo(() => {
+    if (!firestore || !appUser || appUser.role !== 'operator') return null;
+    return collection(firestore, 'shelters') as CollectionReference<Shelter>;
+  }, [firestore, appUser]);
+  const { data: shelters, loading: sheltersLoading } = useCollection<Shelter>(sheltersQuery);
+
   
   if (authStatus === 'verifying') {
     return <div className="container mx-auto text-center py-12">Verificando autorização...</div>;
@@ -1103,6 +1488,17 @@ export default function AdminPage() {
        <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold font-headline">Painel de Administração</h1>
       </div>
+      {appUser && (
+        <DashboardOverview
+          appUser={appUser}
+          animals={animals}
+          animalsLoading={animalsLoading}
+          applications={applications}
+          applicationsLoading={applicationsLoading}
+          shelters={shelters}
+          sheltersLoading={sheltersLoading}
+        />
+      )}
       <Tabs defaultValue="animals" className="w-full">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <aside className="md:col-span-1">
@@ -1136,15 +1532,15 @@ export default function AdminPage() {
           
           <main className="md:col-span-3">
               <TabsContent value="animals">
-                  {appUser && <AnimalsTab appUser={appUser} />}
+                  {appUser && <AnimalsTab appUser={appUser} animals={animals ?? []} animalsLoading={animalsLoading} />}
               </TabsContent>
               <TabsContent value="applications">
-                  {appUser && <ApplicationsTab appUser={appUser} />}
+                  {appUser && <ApplicationsTab appUser={appUser} applications={applications ?? []} applicationsLoading={applicationsLoading} />}
               </TabsContent>
                {appUser?.role === 'operator' && (
                 <>
                   <TabsContent value="shelters">
-                      <SheltersTab />
+                      <SheltersTab shelters={shelters ?? []} sheltersLoading={sheltersLoading} />
                   </TabsContent>
                   <TabsContent value="users">
                       <UsersTab />
