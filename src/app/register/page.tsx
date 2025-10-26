@@ -16,9 +16,10 @@ import type { User as AppUser } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { UserPlus } from 'lucide-react';
+import { getAuthErrorMessage } from '@/lib/auth-errors';
 
 const registerSchema = z.object({
     name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres.'),
@@ -72,7 +73,7 @@ export default function RegisterPage() {
       toast({
         variant: 'destructive',
         title: 'Erro ao cadastrar',
-        description: error.message || 'Não foi possível criar sua conta.',
+        description: getAuthErrorMessage(error, 'Não foi possível criar sua conta.'),
       });
     } finally {
       setIsLoading(false);
@@ -80,13 +81,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="container flex h-full items-center justify-center py-12">
-      <Card className="w-full max-w-md bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+    <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-8 sm:py-12">
+      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border border-border/40 shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-headline">Crie sua Conta</CardTitle>
           <CardDescription>É rápido e fácil. Comece sua jornada de adoção!</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6 p-6 sm:p-8">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                <FormField
@@ -111,6 +112,7 @@ export default function RegisterPage() {
                     <FormControl>
                       <Input type="email" placeholder="seu@email.com" {...field} disabled={isLoading} />
                     </FormControl>
+                    <FormDescription>Usaremos seu email apenas para contato sobre adoção.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -124,6 +126,7 @@ export default function RegisterPage() {
                     <FormControl>
                       <Input type="password" placeholder="Mínimo 6 caracteres" {...field} disabled={isLoading} />
                     </FormControl>
+                    <FormDescription>Crie uma senha segura com letras e números.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

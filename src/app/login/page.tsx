@@ -20,6 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { LogIn } from 'lucide-react';
+import { getAuthErrorMessage } from '@/lib/auth-errors';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido.'),
@@ -71,7 +72,7 @@ export default function LoginPage() {
       toast({
         variant: 'destructive',
         title: 'Erro ao fazer login',
-        description: 'Verifique seu email e senha.',
+        description: getAuthErrorMessage(error, 'Verifique seu email e senha.'),
       });
     } finally {
       setIsLoading(false);
@@ -114,15 +115,12 @@ export default function LoginPage() {
     signInWithPopup(auth, provider)
       .then(processUserSignIn)
       .catch((error: any) => {
-        // Only handle specific, non-permission auth errors here.
-        // Permission errors will be caught by our listener.
-        if (error.code !== 'auth/popup-closed-by-user') {
-            toast({
-              variant: 'destructive',
-              title: 'Erro no login com Google',
-              description: error.message || 'Não foi possível autenticar com o Google.',
-            });
-        }
+        if (error.code === 'auth/popup-closed-by-user') return;
+        toast({
+          variant: 'destructive',
+          title: 'Erro no login com Google',
+          description: getAuthErrorMessage(error, 'Não foi possível autenticar com o Google.'),
+        });
       })
       .finally(() => {
         setIsLoading(false);
@@ -130,13 +128,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="container flex h-full items-center justify-center py-12">
-      <Card className="w-full max-w-md bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+    <div className="container flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-8 sm:py-12">
+      <Card className="w-full max-w-md bg-card/80 backdrop-blur-sm border border-border/40 shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-headline">Login</CardTitle>
           <CardDescription>Acesse sua conta para continuar</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6 p-6 sm:p-8">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField

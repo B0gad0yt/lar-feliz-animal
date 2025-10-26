@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, LogIn } from 'lucide-react';
+import { Check, Heart, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import type { Animal } from '@/lib/types';
 import Script from 'next/script';
@@ -70,6 +70,31 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
       agreement: false,
     },
   });
+  const [fullNameValue, emailValue, phoneValue, addressValue, agreementValue] = form.watch(['fullName', 'email', 'phone', 'address', 'agreement']);
+  const hasBasicInfo = Boolean(fullNameValue && emailValue && phoneValue && addressValue);
+  const hasAgreement = Boolean(agreementValue);
+  const hasCaptcha = Boolean(hcaptchaToken);
+
+  const progressSteps = useMemo(
+    () => [
+      {
+        label: '1. Seus dados',
+        description: 'Contato e endereço',
+        status: hasBasicInfo ? 'done' : 'current',
+      },
+      {
+        label: '2. Termos',
+        description: 'Assine o compromisso',
+        status: hasAgreement ? 'done' : hasBasicInfo ? 'current' : 'upcoming',
+      },
+      {
+        label: '3. Verificação',
+        description: 'Confirme o hCaptcha',
+        status: hasCaptcha ? 'done' : hasAgreement ? 'current' : 'upcoming',
+      },
+    ],
+    [hasBasicInfo, hasAgreement, hasCaptcha]
+  );
 
   // Fetch the site key at runtime when it wasn't embedded at build time
   useEffect(() => {
@@ -151,7 +176,7 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
       }
     }
 
-    setSiteKeyLoading(!siteKey);
+    setSiteKeyLoading(true);
     setSiteKeyAttempt((prev) => prev + 1);
   }, [siteKey]);
 
@@ -225,7 +250,13 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
 
       const verifyJson = await verifyRes.json();
       if (!verifyRes.ok || !verifyJson.success) {
-        toast({ variant: 'destructive', title: 'Verificação falhou', description: 'Falha ao validar hCaptcha. Tente novamente.' });
+        const details = verifyJson?.data?.['error-codes']?.join(', ');
+        toast({
+          variant: 'destructive',
+          title: 'Verificação falhou',
+          description: details ? `hCaptcha retornou: ${details}` : 'Falha ao validar hCaptcha. Tente novamente.',
+        });
+        handleReloadCaptcha();
         setIsSubmitting(false);
         return;
       }
@@ -245,7 +276,6 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
         hasOtherPets: values.hasOtherPets,
         reason: values.reason,
         agreement: values.agreement,
-  hcaptchaToken,
         status: 'pending',
         createdAt: serverTimestamp(),
       });
@@ -268,7 +298,7 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   }
 
   return (
-    <div className="container mx-auto max-w-3xl py-12 px-4">
+    <div className="container mx-auto max-w-3xl px-4 py-8 sm:py-12">
       <Script
         src="https://js.hcaptcha.com/1/api.js?render=explicit"
         strategy="lazyOnload"
@@ -278,16 +308,53 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
           setSiteKeyError('O script do hCaptcha não pôde ser carregado.');
         }}
       />
-      <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
-        <CardHeader className="text-center">
+      <div className="mb-6 rounded-3xl border border-border/60 bg-card/60 p-4 shadow-lg backdrop-blur overflow-x-auto">
+        <div className="flex min-w-full gap-4">
+          {progressSteps.map((step, index) => {
+            const isDone = step.status === 'done';
+            const isCurrent = step.status === 'current';
+
+            return (
+              <div
+                key={step.label}
+                className={`flex min-w-[180px] flex-1 items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
+                  isDone
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : isCurrent
+                      ? 'border-primary text-primary'
+                      : 'border-border/60 text-muted-foreground'
+                }`}
+              >
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-full text-base font-semibold ${
+                    isDone
+                      ? 'bg-primary text-primary-foreground'
+                      : isCurrent
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {isDone ? <Check className="h-5 w-5" /> : index + 1}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold">{step.label}</span>
+                  <span className="text-xs text-muted-foreground">{step.description}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <Card className="rounded-3xl border border-border/40 bg-card/80 backdrop-blur-md shadow-2xl">
+        <CardHeader className="text-center space-y-3">
           <CardTitle className="text-3xl md:text-4xl font-headline">Formulário de Adoção</CardTitle>
           <CardDescription className="text-lg">
             Você está a um passo de mudar a vida de <span className="font-bold text-primary">{animal.name}</span>!
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-8 p-6 sm:p-10">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-6">
               <h3 className="text-xl font-headline font-semibold">Suas Informações</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
@@ -443,9 +510,11 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
                 )}
               </div>
 
-              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !hcaptchaToken || !!siteKeyError}>
-                <Heart className="mr-2 h-5 w-5" /> {isSubmitting ? 'Enviando...' : 'Enviar Pedido de Adoção'}
-              </Button>
+              <div className="md:static sticky inset-x-0 bottom-4 z-10 rounded-2xl border border-border/60 bg-background/80 p-3 shadow-lg backdrop-blur md:border-none md:bg-transparent md:p-0 md:shadow-none">
+                <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || !hcaptchaToken || !!siteKeyError}>
+                  <Heart className="mr-2 h-5 w-5" /> {isSubmitting ? 'Enviando...' : 'Enviar Pedido de Adoção'}
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>
