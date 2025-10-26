@@ -106,7 +106,7 @@ const myths = [
 ];
 
 export default function EducationPage() {
-  const educationHeroImage = 'https://images.unsplash.com/photo-1507149833265-60c372daea22?auto=format&fit=crop&w=1920&q=80';
+  const educationHeroImage = '/images/education-hero.jpg';
 
   return (
     <div>
