@@ -30,9 +30,10 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { LogIn, ShieldCheck, MailCheck, RefreshCw, Sparkles, Clock } from 'lucide-react';
+import { LogIn, MailCheck, RefreshCw, Sparkles } from 'lucide-react';
 import { getAuthErrorMessage } from '@/lib/auth-errors';
 import { HCaptchaChallenge } from '@/components/hcaptcha/challenge';
+import { AuthMarketingPanel } from '@/components/auth/marketing-panel';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido.'),
@@ -59,37 +60,6 @@ const GoogleIcon = () => (
     />
   </svg>
 );
-
-const HIGHLIGHT_STATS = [
-  {
-    label: 'Adoções em andamento',
-    value: '128',
-    helper: '+18% este mês',
-  },
-  {
-    label: 'Solicitações respondidas',
-    value: '92%',
-    helper: 'em menos de 24h',
-  },
-];
-
-const FEATURE_LIST = [
-  {
-    icon: ShieldCheck,
-    title: 'Segurança reforçada',
-    description: 'Login com hCaptcha e detecção de acessos suspeitos em tempo real.',
-  },
-  {
-    icon: MailCheck,
-    title: 'Fluxo verificado',
-    description: 'Envio automático de confirmação de email usando o SMTP do Firebase.',
-  },
-  {
-    icon: Clock,
-    title: 'Retomada rápida',
-    description: 'Reset de senha instantâneo para evitar perda de acesso ao painel.',
-  },
-];
 
 
 export default function LoginPage() {
@@ -297,41 +267,7 @@ export default function LoginPage() {
     <div className="relative isolate min-h-[calc(100vh-8rem)] bg-muted/40 px-4 py-10 sm:py-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.15),_transparent_55%)]" aria-hidden />
       <div className="mx-auto grid w-full max-w-5xl grid-cols-1 overflow-hidden rounded-3xl border border-border/60 bg-background shadow-2xl backdrop-blur lg:grid-cols-[1.2fr,1fr]">
-        <section className="relative hidden flex-col justify-between gap-10 bg-gradient-to-br from-primary via-primary/90 to-primary-foreground/40 p-8 text-white lg:flex">
-          <div>
-            <Badge variant="secondary" className="bg-white/20 text-white">
-              Portal seguro
-            </Badge>
-            <h2 className="mt-4 text-3xl font-headline font-semibold leading-tight">
-              Operações com governança e transparência
-            </h2>
-            <p className="mt-3 max-w-lg text-sm text-white/80">
-              Centralize solicitações de adoção, valide identidades e mantenha o time sincronizado com alertas em tempo real.
-            </p>
-            <ul className="mt-8 space-y-4">
-              {FEATURE_LIST.map((feature) => (
-                <li key={feature.title} className="flex gap-4">
-                  <div className="rounded-full bg-white/15 p-2">
-                    <feature.icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-base font-medium">{feature.title}</p>
-                    <p className="text-sm text-white/70">{feature.description}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {HIGHLIGHT_STATS.map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-white/20 bg-white/10 p-4 text-white shadow-inner">
-                <p className="text-xs uppercase tracking-wide text-white/70">{stat.label}</p>
-                <p className="mt-2 text-3xl font-headline font-semibold">{stat.value}</p>
-                <p className="text-sm text-white/80">{stat.helper}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <AuthMarketingPanel />
 
         <section className="p-6 sm:p-8">
           <div className="space-y-2">

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, User, LogOut, Shield } from 'lucide-react';
+import { Menu, User, LogOut, Shield, UserCog } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 
 import { Logo } from '@/components/icons/logo';
@@ -97,6 +97,13 @@ export function Header() {
                 </p>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/profile">
+                <UserCog className="mr-2 h-4 w-4" />
+                <span>Perfil</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             {isAdmin && (
               <DropdownMenuItem asChild>
