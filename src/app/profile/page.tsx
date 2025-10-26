@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { getAuth, sendPasswordResetEmail, verifyBeforeUpdateEmail } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
+import { doc, type DocumentReference } from 'firebase/firestore';
 
 import { useDoc, useFirestore, useUser } from '@/firebase';
 import type { User as AppUser } from '@/lib/types';
@@ -39,7 +39,10 @@ export default function ProfilePage() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
-  const userDocRef = useMemo(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+  const userDocRef = useMemo(
+    () => (firestore && user ? (doc(firestore, 'users', user.uid) as DocumentReference<AppUser>) : null),
+    [firestore, user]
+  );
   const { data: appUser } = useDoc<AppUser>(userDocRef);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
