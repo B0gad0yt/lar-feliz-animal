@@ -59,6 +59,7 @@ export type AdoptionApplication = {
   hasOtherPets: string;
   reason: string;
   agreement: boolean;
+  humanProof: string;
   status: 'pending' | 'accepted' | 'adopted';
   createdAt?: any;
   handledBy?: string;

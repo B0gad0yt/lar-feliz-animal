@@ -44,14 +44,21 @@ service cloud.firestore {
 
       allow create: if request.auth != null &&
         request.resource.data.applicantId == request.auth.uid &&
-        request.resource.data.status == 'pending';
+        request.resource.data.status == 'pending' &&
+        request.resource.data.keys().hasAll(['altchaPayload']) &&
+        request.resource.data.altchaPayload is string &&
+        request.resource.data.altchaPayload.size() > 0;
 
       allow update: if request.auth != null &&
         (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid)) &&
         request.resource.data.animalId == resource.data.animalId &&
         request.resource.data.applicantId == resource.data.applicantId &&
         request.resource.data.shelterAdminId == resource.data.shelterAdminId &&
-        request.resource.data.status in ['pending', 'accepted', 'adopted'];
+        request.resource.data.status in ['pending', 'accepted', 'adopted'] &&
+        (
+          (resource.data.keys().hasAny(['altchaPayload']) && request.resource.data.altchaPayload == resource.data.altchaPayload) ||
+          (!resource.data.keys().hasAny(['altchaPayload']) && !request.resource.data.keys().hasAny(['altchaPayload']))
+        );
 
       allow delete: if request.auth != null &&
         (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid));

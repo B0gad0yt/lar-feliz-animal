@@ -19,16 +19,12 @@ FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n... \n-----END PRIVATE 
 
 Somente usuários autenticados com papel `operator` conseguem obter um ID token válido para chamar essas rotas.
 
-## reCAPTCHA Enterprise
+## Verificação humana no formulário de adoção
 
-O formulário de adoção usa o reCAPTCHA Enterprise para evitar spam. Configure:
+O formulário usa o [ALTCHA](https://altcha.org) como desafio padrão. Configure uma chave HMAC para assinar os desafios:
 
 ```
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=sua-chave-publica
-RECAPTCHA_ENTERPRISE_SITE_KEY=sua-chave-publica   # opcional no backend (ajuda a trocar sem rebuild)
-FIREBASE_ADMIN_PROJECT_ID=seu-projeto-gcp
-FIREBASE_ADMIN_CLIENT_EMAIL=service-account@seu-projeto.iam.gserviceaccount.com
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+ALTCHA_HMAC_KEY=uma-chave-secreta-bem-grande
 ```
 
-No Google Cloud Console habilite o reCAPTCHA Enterprise, crie uma chave Web e autorize os domínios (produção + localhost). Use as mesmas credenciais (service account) já utilizadas pelo Firebase Admin: o backend consome a API `createAssessment` autenticando com a chave privada.
+O widget consome os endpoints `/api/altcha/challenge` e `/api/altcha/verify`. O Firestore mantém o campo `altchaPayload` em cada pedido de adoção como registro da verificação.
