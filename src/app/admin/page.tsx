@@ -37,6 +37,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 
 function AnimalsTab({ appUser }: { appUser: AppUser }) {
@@ -173,13 +181,67 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
   )
 }
 
+const userFormSchema = z.object({
+  displayName: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres.'),
+  email: z.string().email('Email inválido.'),
+  role: z.enum(['user', 'shelterAdmin', 'operator']),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres.').optional(),
+  photoURL: z.string().url('URL inválida.').or(z.literal('')).optional(),
+});
+type UserFormValues = z.infer<typeof userFormSchema>;
+const defaultUserFormValues: UserFormValues = {
+  displayName: '',
+  email: '',
+  role: 'user',
+  password: '',
+  photoURL: '',
+};
+
 function UsersTab() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [itemToEdit, setItemToEdit] = useState<AppUser | null>(null);
+  const { user: firebaseUser } = useUser();
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AppUser | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const usersQuery = useMemo(() => firestore ? collection(firestore, 'users') : null, [firestore]);
   const { data: users, loading: usersLoading } = useCollection<AppUser>(usersQuery);
+
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: defaultUserFormValues,
+  });
+
+  useEffect(() => {
+    if (!isDialogOpen) return;
+
+    if (dialogMode === 'edit' && selectedUser) {
+      form.reset({
+        displayName: selectedUser.displayName ?? '',
+        email: selectedUser.email ?? '',
+        role: selectedUser.role,
+        password: '',
+        photoURL: selectedUser.photoURL ?? '',
+      });
+    } else {
+      form.reset(defaultUserFormValues);
+    }
+  }, [dialogMode, selectedUser, isDialogOpen, form]);
+
+  const getAuthHeaders = async () => {
+    if (!firebaseUser) {
+      throw new Error('Usuário não autenticado.');
+    }
+    const token = await firebaseUser.getIdToken();
+    return {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  };
 
   const handleRoleChange = (user: AppUser, newRole: AppUser['role']) => {
     if (!firestore) return;
@@ -194,15 +256,133 @@ function UsersTab() {
       });
   };
 
+  const openCreateDialog = () => {
+    setDialogMode('create');
+    setSelectedUser(null);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (user: AppUser) => {
+    setDialogMode('edit');
+    setSelectedUser(user);
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setSelectedUser(null);
+    setDialogMode('create');
+    form.reset(defaultUserFormValues);
+  };
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    if (!firebaseUser) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não autenticado.' });
+      return;
+    }
+
+    if (dialogMode === 'create' && !values.password) {
+      form.setError('password', { message: 'Informe uma senha.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const targetUid = selectedUser?.uid;
+      if (dialogMode === 'edit' && !targetUid) {
+        throw new Error('Usuário selecionado não encontrado.');
+      }
+
+      const headers = await getAuthHeaders();
+      const payload: Record<string, string> = {
+        displayName: values.displayName,
+        email: values.email,
+        role: values.role,
+        photoURL: values.photoURL?.trim() ?? '',
+      };
+
+      if (dialogMode === 'create') {
+        payload.password = values.password ?? '';
+      } else if (values.password) {
+        payload.password = values.password;
+      }
+
+      const endpoint =
+        dialogMode === 'create'
+          ? '/api/admin/users'
+          : `/api/admin/users/${targetUid}`;
+
+      const response = await fetch(endpoint, {
+        method: dialogMode === 'create' ? 'POST' : 'PATCH',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.message || 'Não foi possível salvar o usuário.');
+      }
+
+      toast({
+        title: dialogMode === 'create' ? 'Usuário criado!' : 'Usuário atualizado!',
+      });
+      closeDialog();
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao salvar usuário',
+        description: error.message || 'Tente novamente em instantes.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  });
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/admin/users/${userToDelete.uid}`, {
+        method: 'DELETE',
+        headers,
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.message || 'Não foi possível excluir o usuário.');
+      }
+      toast({ title: 'Usuário excluído com sucesso!' });
+      setUserToDelete(null);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao excluir usuário',
+        description: error.message || 'Tente novamente em instantes.',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (usersLoading) {
      return <div className="text-center p-8">Carregando usuários...</div>;
   }
   
   return (
     <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
-        <CardHeader>
-            <CardTitle>Gerenciar Usuários</CardTitle>
-            <CardDescription>Edite os cargos dos usuários do sistema.</CardDescription>
+        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>Gerenciar Usuários</CardTitle>
+              <CardDescription>Crie, edite ou remova usuários do sistema.</CardDescription>
+            </div>
+            <Button onClick={openCreateDialog} className="w-full md:w-auto">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Novo Usuário
+            </Button>
         </CardHeader>
         <CardContent>
            <div className="overflow-x-auto">
@@ -212,6 +392,7 @@ function UsersTab() {
                             <TableHead>Nome</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Cargo</TableHead>
+                            <TableHead><span className="sr-only">Ações</span></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -234,12 +415,140 @@ function UsersTab() {
                                         </SelectContent>
                                     </Select>
                                 </TableCell>
+                                <TableCell className="flex gap-2 justify-end">
+                                  <Button variant="outline" size="sm" onClick={() => openEditDialog(user)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Editar
+                                  </Button>
+                                  <Button variant="destructive" size="sm" onClick={() => setUserToDelete(user)}>
+                                    <Trash className="mr-2 h-4 w-4" />
+                                    Remover
+                                  </Button>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </div>
         </CardContent>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{dialogMode === 'create' ? 'Adicionar Usuário' : 'Editar Usuário'}</DialogTitle>
+              <DialogDescription>
+                Preencha os dados abaixo para {dialogMode === 'create' ? 'criar um novo usuário' : 'atualizar o usuário selecionado'}.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={onSubmit} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="displayName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome completo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="email@dominio.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="photoURL"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Foto (URL)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cargo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um cargo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="user">Usuário</SelectItem>
+                          <SelectItem value="shelterAdmin">Admin (Abrigo)</SelectItem>
+                          <SelectItem value="operator">Operador</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Senha</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        {dialogMode === 'create'
+                          ? 'Defina a senha inicial do usuário.'
+                          : 'Preencha apenas se desejar alterar a senha.'}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={closeDialog}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Salvando...' : 'Salvar'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => (!open ? setUserToDelete(null) : null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Essa ação é irreversível. O usuário perderá o acesso imediatamente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteUser} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {isDeleting ? 'Removendo...' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
     </Card>
   )
 }
