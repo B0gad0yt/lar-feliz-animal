@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import {
   BookOpen,
   ShieldCheck,
@@ -105,12 +106,22 @@ const myths = [
 ];
 
 export default function EducationPage() {
+  const educationHeroImage = 'https://images.unsplash.com/photo-1507149833265-60c372daea22?auto=format&fit=crop&w=1920&q=80';
+
   return (
     <div>
-      <section className="relative w-full py-20 md:py-32 bg-primary/10">
-        <div className="container mx-auto text-center px-4">
-          <h1 className="text-4xl md:text-5xl font-bold font-headline">Educação que Salva Vidas</h1>
-          <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
+      <section className="relative w-full h-[60vh] md:h-[70vh]">
+        <Image
+          src={educationHeroImage}
+          alt="Golden retriever correndo em um campo ao pôr do sol"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white px-4">
+          <h1 className="text-4xl md:text-5xl font-bold font-headline drop-shadow-lg">Educação que Salva Vidas</h1>
+          <p className="mt-4 text-lg md:text-xl max-w-3xl drop-shadow">
             Entender a posse responsável é o primeiro passo para combater o abandono. Aprenda, conscientize-se e faça parte da mudança.
           </p>
         </div>
