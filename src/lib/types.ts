@@ -42,3 +42,25 @@ export type SiteConfig = {
     title: string;
     socialLinks: SocialLink[];
 }
+
+export type AdoptionApplication = {
+  id?: string;
+  animalId: string;
+  animalName: string;
+  animalPhoto?: string | null;
+  shelterId: string;
+  shelterAdminId: string;
+  applicantId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  residenceType: 'Casa' | 'Apartamento';
+  hasOtherPets: string;
+  reason: string;
+  agreement: boolean;
+  status: 'pending' | 'accepted' | 'adopted';
+  createdAt?: any;
+  handledBy?: string;
+  handledAt?: any;
+};

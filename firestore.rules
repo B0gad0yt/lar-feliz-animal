@@ -33,6 +33,29 @@ service cloud.firestore {
       allow delete: if request.auth != null &&
         (isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid));
     }
+
+    // Regras para pedidos de adoção
+    match /adoptionApplications/{applicationId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.applicantId ||
+        isOperator() ||
+        (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid)
+      );
+
+      allow create: if request.auth != null &&
+        request.resource.data.applicantId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+
+      allow update: if request.auth != null &&
+        (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid)) &&
+        request.resource.data.animalId == resource.data.animalId &&
+        request.resource.data.applicantId == resource.data.applicantId &&
+        request.resource.data.shelterAdminId == resource.data.shelterAdminId &&
+        request.resource.data.status in ['pending', 'accepted', 'adopted'];
+
+      allow delete: if request.auth != null &&
+        (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid));
+    }
     
     // Regras para a coleção 'shelters'
     match /shelters/{shelterId} {

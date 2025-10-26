@@ -1,12 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useDoc, useFirestore } from '@/firebase'; 
-import { doc } from 'firebase/firestore';
+import { collection, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -19,6 +19,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Heart, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import type { Animal } from '@/lib/types';
+import Script from 'next/script';
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      enterprise: {
+        ready: (cb: () => void) => void;
+        execute: (key: string, options: { action: string }) => Promise<string>;
+      };
+    };
+  }
+}
 
 const applicationSchema = z.object({
   fullName: z.string().min(3, 'Nome completo é obrigatório.'),
@@ -38,6 +50,9 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recaptchaReady, setRecaptchaReady] = useState(false);
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
   
   const animalRef = useMemo(() => firestore ? doc(firestore, 'animals', params.id) : null, [firestore, params.id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
@@ -96,13 +111,81 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     );
   }
 
-  function onSubmit(values: z.infer<typeof applicationSchema>) {
-    console.log(values);
-    toast({
-      title: 'Formulário enviado com sucesso!',
-      description: `O abrigo entrará em contato em breve sobre a adoção de ${animal?.name}.`,
-    });
-    router.push(`/adopt/${animal?.id}`);
+  async function onSubmit(values: z.infer<typeof applicationSchema>) {
+    if (!firestore || !user || !animal) return;
+
+    setIsSubmitting(true);
+
+    try {
+      let recaptchaScore = null;
+      if (siteKey) {
+        if (!window.grecaptcha?.enterprise) {
+          throw new Error('reCAPTCHA ainda não foi carregado.');
+        }
+        if (!recaptchaReady) {
+          throw new Error('reCAPTCHA não está pronto. Atualize a página e tente novamente.');
+        }
+
+        const token = await window.grecaptcha.enterprise.execute(siteKey, {
+          action: 'adoption_form',
+        });
+
+        const verifyResponse = await fetch('/api/recaptcha/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, action: 'adoption_form' }),
+        });
+
+        if (!verifyResponse.ok) {
+          const data = await verifyResponse.json().catch(() => null);
+          throw new Error(data?.message || 'Falha ao validar o reCAPTCHA.');
+        }
+
+        const verification = await verifyResponse.json();
+        recaptchaScore = verification.score;
+
+        if (recaptchaScore < 0.3) {
+          throw new Error('Não foi possível validar sua solicitação. Tente novamente.');
+        }
+      }
+
+      const applicationsRef = collection(firestore, 'adoptionApplications');
+
+      await addDoc(applicationsRef, {
+        animalId: animal.id,
+        animalName: animal.name,
+        animalPhoto: animal.photos?.[0] ?? null,
+        shelterId: animal.shelterId,
+        shelterAdminId: animal.createdBy ?? '',
+        applicantId: user.uid,
+        fullName: values.fullName,
+        email: values.email,
+        phone: values.phone,
+        address: values.address,
+        residenceType: values.residenceType,
+        hasOtherPets: values.hasOtherPets,
+        reason: values.reason,
+        agreement: values.agreement,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        recaptchaScore,
+      });
+
+      toast({
+        title: 'Formulário enviado com sucesso!',
+        description: `O abrigo entrará em contato em breve sobre a adoção de ${animal?.name}.`,
+      });
+      router.push(`/adopt/${animal?.id}`);
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao enviar formulário',
+        description: error?.message || 'Tente novamente em alguns instantes.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -247,15 +330,35 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
                   )}
                 />
 
-              <Button type="submit" size="lg" className="w-full">
-                <Heart className="mr-2 h-5 w-5" /> Enviar Pedido de Adoção
+              <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
+                <Heart className="mr-2 h-5 w-5" /> {isSubmitting ? 'Enviando...' : 'Enviar Pedido de Adoção'}
               </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
+      {siteKey && (
+        <Script
+          src={`https://www.google.com/recaptcha/enterprise.js?render=${siteKey}`}
+          strategy="afterInteractive"
+        />
+      )}
     </div>
   );
 }
 
     
+  useEffect(() => {
+    if (!siteKey) return;
+
+    const interval = setInterval(() => {
+      if (window.grecaptcha?.enterprise) {
+        window.grecaptcha.enterprise.ready(() => {
+          setRecaptchaReady(true);
+          clearInterval(interval);
+        });
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [siteKey]);

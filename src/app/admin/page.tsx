@@ -3,7 +3,7 @@
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useCollection, useDoc } from '@/firebase';
-import { collection, doc, deleteDoc, setDoc, query, where } from 'firebase/firestore';
+import { collection, doc, deleteDoc, setDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -22,9 +22,9 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users, Inbox, Check, Ban, HeartHandshake } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { Animal, User as AppUser, Shelter, SiteConfig } from '@/lib/types';
+import type { Animal, User as AppUser, Shelter, SiteConfig, AdoptionApplication } from '@/lib/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -179,6 +179,239 @@ function AnimalsTab({ appUser }: { appUser: AppUser }) {
         </AlertDialog>
     </Card>
   )
+}
+
+function ApplicationsTab({ appUser }: { appUser: AppUser }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [adoptingId, setAdoptingId] = useState<string | null>(null);
+
+  const applicationsQuery = useMemo(() => {
+    if (!firestore || !appUser) return null;
+    const applicationsRef = collection(firestore, 'adoptionApplications');
+    if (appUser.role === 'operator') {
+      return applicationsRef;
+    }
+    return query(applicationsRef, where('shelterAdminId', '==', appUser.uid));
+  }, [firestore, appUser]);
+
+  const { data: applications, loading: applicationsLoading } = useCollection<AdoptionApplication>(applicationsQuery);
+
+  const pendingApplications = applications?.filter((item) => item.status === 'pending') ?? [];
+  const acceptedApplications = applications?.filter((item) => item.status === 'accepted') ?? [];
+
+  const handleStatusChange = async (application: AdoptionApplication, status: 'pending' | 'accepted' | 'adopted') => {
+    if (!firestore || !application.id) return;
+    setProcessingId(application.id);
+    try {
+      const applicationRef = doc(firestore, 'adoptionApplications', application.id);
+      await updateDoc(applicationRef, {
+        status,
+        handledBy: appUser.uid,
+        handledAt: serverTimestamp(),
+      });
+      toast({
+        title: status === 'accepted' ? 'Pedido aceito!' : 'Pedido atualizado!',
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar pedido',
+        description: error?.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteApplication = async (application: AdoptionApplication) => {
+    if (!firestore || !application.id) return;
+    setRemovingId(application.id);
+    try {
+      await deleteDoc(doc(firestore, 'adoptionApplications', application.id));
+      toast({ title: 'Pedido removido.' });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao remover pedido',
+        description: error?.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  const handleMarkAsAdopted = async (application: AdoptionApplication) => {
+    if (!firestore || !application.id) return;
+    setAdoptingId(application.id);
+    try {
+      await updateDoc(doc(firestore, 'adoptionApplications', application.id), {
+        status: 'adopted',
+        handledBy: appUser.uid,
+        handledAt: serverTimestamp(),
+      });
+
+      await deleteDoc(doc(firestore, 'animals', application.animalId));
+
+      const related = (applications ?? []).filter(
+        (item) => item.animalId === application.animalId && item.id && item.id !== application.id
+      );
+      await Promise.all(
+        related.map((item) =>
+          deleteDoc(doc(firestore, 'adoptionApplications', item.id!))
+        )
+      );
+
+      toast({ title: `${application.animalName} marcado como adotado!` });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao concluir adoção',
+        description: error?.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setAdoptingId(null);
+    }
+  };
+
+  const renderApplicationCard = (application: AdoptionApplication, variant: 'pending' | 'accepted') => {
+    const submittedAt = application.createdAt?.toDate ? application.createdAt.toDate().toLocaleString('pt-BR') : '—';
+
+    return (
+      <div key={application.id} className="border rounded-lg p-4 bg-background/60">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">#{application.id?.slice(0, 6)}</Badge>
+              <Badge>{application.animalName}</Badge>
+              <Badge variant="secondary">{application.residenceType}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Enviado em {submittedAt}</p>
+            <p className="mt-3 text-base font-semibold">{application.fullName}</p>
+            <p className="text-sm text-muted-foreground">{application.email} · {application.phone}</p>
+          </div>
+          {application.animalPhoto && (
+            <div className="relative h-20 w-20 rounded-md overflow-hidden">
+              <Image
+                src={application.animalPhoto}
+                alt={application.animalName}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mt-4">
+          <div>
+            <span className="font-semibold">Endereço: </span>
+            {application.address}
+          </div>
+          <div>
+            <span className="font-semibold">Outros animais: </span>
+            {application.hasOtherPets || 'Não informado'}
+          </div>
+          <div className="md:col-span-2">
+            <span className="font-semibold">Motivação: </span>
+            {application.reason}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {variant === 'pending' && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => handleStatusChange(application, 'accepted')}
+                disabled={processingId === application.id}
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Aceitar
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleDeleteApplication(application)}
+                disabled={removingId === application.id}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Remover
+              </Button>
+            </>
+          )}
+          {variant === 'accepted' && (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleDeleteApplication(application)}
+                disabled={removingId === application.id}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Remover
+              </Button>
+              <Button
+                size="sm"
+                className="bg-emerald-600 text-white hover:bg-emerald-500"
+                onClick={() => handleMarkAsAdopted(application)}
+                disabled={adoptingId === application.id}
+              >
+                <HeartHandshake className="mr-2 h-4 w-4" />
+                Adotado
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (applicationsLoading) {
+    return <div className="text-center p-8">Carregando pedidos de adoção...</div>;
+  }
+
+  return (
+    <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+      <CardHeader>
+        <CardTitle>Pedidos de Adoção</CardTitle>
+        <CardDescription>Gerencie solicitações recebidas pelos abrigos.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Inbox className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Pendentes</h3>
+            <Badge variant="secondary">{pendingApplications.length}</Badge>
+          </div>
+          {pendingApplications.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum pedido pendente no momento.</p>
+          ) : (
+            <div className="space-y-4">
+              {pendingApplications.map((application) => renderApplicationCard(application, 'pending'))}
+            </div>
+          )}
+        </section>
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Check className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Aceitos</h3>
+            <Badge variant="secondary">{acceptedApplications.length}</Badge>
+          </div>
+          {acceptedApplications.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum pedido aceito ainda.</p>
+          ) : (
+            <div className="space-y-4">
+              {acceptedApplications.map((application) => renderApplicationCard(application, 'accepted'))}
+            </div>
+          )}
+        </section>
+      </CardContent>
+    </Card>
+  );
 }
 
 const userFormSchema = z.object({
@@ -877,6 +1110,10 @@ export default function AdminPage() {
                   <Bone className="mr-2 h-5 w-5" />
                   Animais
                 </TabsTrigger>
+                <TabsTrigger value="applications" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
+                  <Inbox className="mr-2 h-5 w-5" />
+                  Pedidos
+                </TabsTrigger>
                 {appUser?.role === 'operator' && (
                   <>
                     <TabsTrigger value="shelters" className="justify-start text-lg p-3 data-[state=active]:bg-accent data-[state=active]:shadow-none">
@@ -899,6 +1136,9 @@ export default function AdminPage() {
           <main className="md:col-span-3">
               <TabsContent value="animals">
                   {appUser && <AnimalsTab appUser={appUser} />}
+              </TabsContent>
+              <TabsContent value="applications">
+                  {appUser && <ApplicationsTab appUser={appUser} />}
               </TabsContent>
                {appUser?.role === 'operator' && (
                 <>

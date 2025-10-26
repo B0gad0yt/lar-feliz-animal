@@ -66,6 +66,30 @@
                 }
             }
         }
+    },
+    "adoptionApplication": {
+      "title": "Adoption Application",
+      "description": "A request submitted by a user to adopt an animal.",
+      "type": "object",
+      "properties": {
+        "animalId": { "type": "string" },
+        "animalName": { "type": "string" },
+        "animalPhoto": { "type": "string" },
+        "shelterId": { "type": "string" },
+        "shelterAdminId": { "type": "string" },
+        "applicantId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "residenceType": { "type": "string", "enum": ["Casa", "Apartamento"] },
+        "hasOtherPets": { "type": "string" },
+        "reason": { "type": "string" },
+        "agreement": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "adopted"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["animalId", "shelterId", "shelterAdminId", "applicantId", "fullName", "email", "status"]
     }
   },
   "auth": {
@@ -87,6 +111,10 @@
     "/config/site": {
         "schema": { "$ref": "#/entities/siteConfig" },
         "description": "Stores global site configuration."
+    },
+    "/adoptionApplications/{applicationId}": {
+      "schema": { "$ref": "#/entities/adoptionApplication" },
+      "description": "Stores adoption requests submitted by users."
     }
   }
 }

@@ -18,3 +18,16 @@ FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n... \n-----END PRIVATE 
 > Observação: se estiver usando um arquivo `.env`, mantenha as quebras de linha escapadas (`\n`). Em ambientes gerenciados (Vercel, Railway, etc.), cole a chave completa e substitua novas linhas por `\n`.
 
 Somente usuários autenticados com papel `operator` conseguem obter um ID token válido para chamar essas rotas.
+
+## reCAPTCHA Enterprise
+
+O formulário de adoção usa o reCAPTCHA Enterprise para evitar spam. Configure:
+
+```
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=sua-chave-publica
+FIREBASE_ADMIN_PROJECT_ID=mesmo projeto usado no reCAPTCHA
+FIREBASE_ADMIN_CLIENT_EMAIL=service-account@projeto.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+No Google Cloud Console habilite o reCAPTCHA Enterprise, crie uma chave Web e autorize os domínios (produção + localhost). O backend usa o mesmo service account do Firebase Admin para chamar a API `createAssessment`.
