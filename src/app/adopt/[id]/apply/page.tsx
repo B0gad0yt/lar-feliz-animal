@@ -45,6 +45,11 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const firestore = useFirestore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hcaptchaToken, setHcaptchaToken] = useState<string | null>(null);
+  const initialSiteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY ?? null;
+  const [siteKey, setSiteKey] = useState<string | null>(initialSiteKey);
+  const [siteKeyLoading, setSiteKeyLoading] = useState(!initialSiteKey);
+  const [siteKeyError, setSiteKeyError] = useState<string | null>(null);
+  const [siteKeyAttempt, setSiteKeyAttempt] = useState(0);
   const hcaptchaContainer = useRef<HTMLDivElement | null>(null);
 
   const animalRef = useMemo(() => (firestore ? doc(firestore, 'animals', params.id) : null), [firestore, params.id]);
@@ -63,53 +68,110 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
     },
   });
 
-  // Load and render hCaptcha explicitly on client
+  // Fetch the site key at runtime when it wasn't embedded at build time
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (siteKey) {
+      setSiteKeyLoading(false);
+      return;
+    }
 
-    const siteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITEKEY;
-    if (!siteKey) return; // nothing to do without a site key
+    let cancelled = false;
+    setSiteKeyLoading(true);
+
+    const fetchSiteKey = async () => {
+      try {
+        const res = await fetch('/api/hcaptcha/sitekey');
+        if (!res.ok) throw new Error(`Erro ${res.status}`);
+        const data = await res.json();
+        if (!cancelled && data?.siteKey) {
+          setSiteKey(data.siteKey);
+          setSiteKeyError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Erro ao carregar site key do hCaptcha', error);
+          setSiteKeyError('Não foi possível carregar o desafio do hCaptcha.');
+        }
+      } finally {
+        if (!cancelled) {
+          setSiteKeyLoading(false);
+        }
+      }
+    };
+
+    fetchSiteKey();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteKey, siteKeyAttempt]);
+
+  // Load and render hCaptcha explicitly on client once a key is available
+  useEffect(() => {
+    if (typeof window === 'undefined' || !siteKey) return;
 
     let widgetId: number | null = null;
+    let scriptEl: HTMLScriptElement | null = null;
+    let cancelled = false;
+
     const renderWidget = () => {
+      if (cancelled) return;
       try {
-        if (!hcaptchaContainer.current) return;
-        if (!window.hcaptcha) return;
-        // render explicit hcaptcha widget
+        if (!hcaptchaContainer.current || !window.hcaptcha) return;
         widgetId = window.hcaptcha.render(hcaptchaContainer.current, {
           sitekey: siteKey,
           callback: (token: string) => setHcaptchaToken(token),
           'expired-callback': () => setHcaptchaToken(null),
         });
+        setSiteKeyError(null);
+        setSiteKeyLoading(false);
       } catch (e) {
-        // ignore render errors
         console.error('hCaptcha render error', e);
+        setSiteKeyError('Falha ao inicializar o hCaptcha.');
+        setSiteKeyLoading(false);
       }
     };
 
     if (!window.hcaptcha) {
-      const s = document.createElement('script');
-      s.src = 'https://js.hcaptcha.com/1/api.js?render=explicit';
-      s.async = true;
-      s.defer = true;
-      s.onload = () => {
-        renderWidget();
+      scriptEl = document.createElement('script');
+      scriptEl.src = 'https://js.hcaptcha.com/1/api.js?render=explicit';
+      scriptEl.async = true;
+      scriptEl.defer = true;
+      scriptEl.onload = renderWidget;
+      scriptEl.onerror = (err) => {
+        console.error('Erro ao carregar script do hCaptcha', err);
+        setSiteKeyError('O script do hCaptcha não pôde ser carregado.');
+        setSiteKeyLoading(false);
       };
-      document.head.appendChild(s);
-      return () => {
-        try {
-          document.head.removeChild(s);
-        } catch {}
-      };
+      document.head.appendChild(scriptEl);
     } else {
       renderWidget();
-      return () => {
-        try {
-          if (widgetId !== null && window.hcaptcha?.remove) window.hcaptcha.remove(widgetId);
-        } catch {}
-      };
     }
-  }, []);
+
+    return () => {
+      cancelled = true;
+      if (widgetId !== null && window?.hcaptcha?.remove) {
+        try {
+          window.hcaptcha.remove(widgetId);
+        } catch {}
+      }
+      if (scriptEl) {
+        try {
+          document.head.removeChild(scriptEl);
+        } catch {}
+      }
+      setHcaptchaToken(null);
+    };
+  }, [siteKey, siteKeyAttempt]);
+
+  const handleReloadCaptcha = useCallback(() => {
+    setSiteKeyError(null);
+    setHcaptchaToken(null);
+    setSiteKeyLoading(true);
+    setSiteKeyAttempt((prev) => prev + 1);
+  }, [siteKey]);
+
+  const shouldShowCaptchaWidget = Boolean(siteKey && !siteKeyError);
 
   if (animalLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
@@ -365,11 +427,25 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
               <div>
                 <FormLabel>Verificação Humana</FormLabel>
                 <FormDescription>Resolva o desafio abaixo para confirmar que você não é um robô.</FormDescription>
-                <div className="mt-2 rounded-md border border-border/60 bg-background/60 p-3">
-                  <div ref={hcaptchaContainer} />
+                <div className="mt-2 rounded-md border border-border/60 bg-background/60 p-3 min-h-[110px] flex items-center justify-center">
+                  {shouldShowCaptchaWidget ? (
+                    <div ref={hcaptchaContainer} className="w-full flex justify-center" />
+                  ) : siteKeyLoading ? (
+                    <p className="text-sm text-muted-foreground">Carregando desafio do hCaptcha...</p>
+                  ) : (
+                    <div className="text-center space-y-3">
+                      <p className="text-sm text-destructive">{siteKeyError ?? 'Não foi possível carregar o hCaptcha.'}</p>
+                      <Button type="button" variant="outline" size="sm" onClick={handleReloadCaptcha}>
+                        Tentar novamente
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {!hcaptchaToken && (
+                {shouldShowCaptchaWidget && !hcaptchaToken && (
                   <p className="mt-2 text-sm text-muted-foreground">Clique no desafio acima e aguarde a confirmação antes de enviar.</p>
+                )}
+                {!shouldShowCaptchaWidget && !siteKeyLoading && (
+                  <p className="mt-2 text-sm text-muted-foreground">Caso o problema persista, entre em contato com o suporte.</p>
                 )}
               </div>
 

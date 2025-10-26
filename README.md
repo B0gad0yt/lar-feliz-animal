@@ -25,7 +25,10 @@ O formulário usa o hCaptcha como desafio. Configure as chaves do hCaptcha em um
 
 ```
 NEXT_PUBLIC_HCAPTCHA_SITEKEY=seu-sitekey-publico
+# (opcional) caso prefira não embutir a chave pública durante o build,
+# defina apenas esta variável que será exposta via endpoint em runtime
+HCAPTCHA_SITEKEY=seu-sitekey-publico
 HCAPTCHA_SECRET=sua-chave-secreta-do-hcaptcha
 ```
 
-O widget carrega o script oficial do hCaptcha e o endpoint server-side `/api/hcaptcha/verify` valida o token junto ao serviço do hCaptcha antes de salvar o pedido no Firestore.
+O widget carrega o script oficial do hCaptcha e, quando a chave pública não estiver embutida no bundle, o endpoint `/api/hcaptcha/sitekey` a fornece em tempo de execução. Já o endpoint server-side `/api/hcaptcha/verify` valida o token junto ao serviço do hCaptcha antes de salvar o pedido no Firestore.
