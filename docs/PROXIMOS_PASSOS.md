@@ -316,7 +316,6 @@ Antes de anunciar publicamente:
 - [ ] Redes sociais criadas
 - [ ] Email de contato ativo
 - [ ] Press kit preparado
-- [ ] Histórias de sucesso reais
 
 ---
 

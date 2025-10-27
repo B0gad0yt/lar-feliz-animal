@@ -11,7 +11,6 @@ Uma plataforma moderna e completa para conectar pessoas com animais disponíveis
 - **Match Inteligente**: Encontre pets compatíveis com seu estilo de vida usando filtros de temperamento
 - **Compartilhamento Social**: Compartilhe perfis de animais nas redes sociais
 - **Formulário de Adoção**: Processo simplificado com verificação hCaptcha
-- **Histórias de Sucesso**: Inspire-se com histórias reais de adoções bem-sucedidas
 
 ### 📚 Conteúdo Educativo
 - **Guia Completo**: Informações sobre posse responsável e consequências do abandono
