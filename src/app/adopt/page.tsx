@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { SlidersHorizontal, PawPrint } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StaggerContainer } from '@/components/animations/stagger-container';
+import { Reveal } from '@/components/animations/reveal';
 
 export default function AdoptPage() {
   const firestore = useFirestore();
@@ -61,82 +63,88 @@ export default function AdoptPage() {
   );
 
   return (
-    <div className="container mx-auto py-8 px-4">
+  <div className="container mx-auto py-8 px-4" data-animate="off" data-motion="manual">
       <header className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-headline font-bold">Adote um Amigo</h1>
-        <p className="text-lg text-muted-foreground mt-2">
+        <Reveal as="h1" className="text-4xl md:text-5xl font-headline font-bold">
+          Adote um Amigo
+        </Reveal>
+        <Reveal as="p" delay={0.08} className="text-lg text-muted-foreground mt-2">
           Veja os animais incríveis que estão esperando por um lar.
-        </p>
+        </Reveal>
       </header>
       <div className="flex flex-col md:flex-row gap-8">
         <aside className="w-full md:w-1/4 lg:w-1/5">
-          <Card className="p-4 bg-card/70 backdrop-blur-sm shadow-lg sticky top-24">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <SlidersHorizontal className="mr-2 h-5 w-5" />
-              Filtros
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="search">Pesquisar</Label>
-                <Input
-                  id="search"
-                  placeholder="Nome ou raça..."
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
-                />
+          <Reveal as="section" className="sticky top-24">
+            <Card className="p-4 bg-card/70 backdrop-blur-sm shadow-lg">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <SlidersHorizontal className="mr-2 h-5 w-5" />
+                Filtros
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="search">Pesquisar</Label>
+                  <Input
+                    id="search"
+                    placeholder="Nome ou raça..."
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="species">Espécie</Label>
+                  <Select value={filters.species} onValueChange={(value) => handleFilterChange('species', value)}>
+                    <SelectTrigger id="species">
+                      <SelectValue placeholder="Espécie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      <SelectItem value="Cachorro">Cachorro</SelectItem>
+                      <SelectItem value="Gato">Gato</SelectItem>
+                      <SelectItem value="Coelho">Coelho</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="size">Tamanho</Label>
+                  <Select value={filters.size} onValueChange={(value) => handleFilterChange('size', value)}>
+                    <SelectTrigger id="size">
+                      <SelectValue placeholder="Tamanho" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="Pequeno">Pequeno</SelectItem>
+                      <SelectItem value="Médio">Médio</SelectItem>
+                      <SelectItem value="Grande">Grande</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="gender">Sexo</Label>
+                  <Select value={filters.gender} onValueChange={(value) => handleFilterChange('gender', value)}>
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Sexo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="Macho">Macho</SelectItem>
+                      <SelectItem value="Fêmea">Fêmea</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="species">Espécie</Label>
-                <Select value={filters.species} onValueChange={(value) => handleFilterChange('species', value)}>
-                  <SelectTrigger id="species">
-                    <SelectValue placeholder="Espécie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="Cachorro">Cachorro</SelectItem>
-                    <SelectItem value="Gato">Gato</SelectItem>
-                    <SelectItem value="Coelho">Coelho</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="size">Tamanho</Label>
-                <Select value={filters.size} onValueChange={(value) => handleFilterChange('size', value)}>
-                  <SelectTrigger id="size">
-                    <SelectValue placeholder="Tamanho" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="Pequeno">Pequeno</SelectItem>
-                    <SelectItem value="Médio">Médio</SelectItem>
-                    <SelectItem value="Grande">Grande</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="gender">Sexo</Label>
-                <Select value={filters.gender} onValueChange={(value) => handleFilterChange('gender', value)}>
-                  <SelectTrigger id="gender">
-                    <SelectValue placeholder="Sexo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="Macho">Macho</SelectItem>
-                    <SelectItem value="Fêmea">Fêmea</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Reveal>
         </aside>
         <main className="w-full md:w-3/4 lg:w-4/5">
           {animalsLoading ? renderSkeleton() : (
             filteredAnimals.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" stagger={0.12}>
                 {filteredAnimals.map((animal) => (
-                    <AnimalCard key={animal.id} animal={animal} />
+                    <Reveal as="article" key={animal.id}>
+                      <AnimalCard animal={animal} />
+                    </Reveal>
                 ))}
-                </div>
+                </StaggerContainer>
             ) : (
                 <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg">
                     <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />

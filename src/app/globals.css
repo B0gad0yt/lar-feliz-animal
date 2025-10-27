@@ -84,3 +84,47 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .reveal-element {
+    opacity: 0;
+    transform: var(--reveal-transform, translateY(32px));
+    transition:
+      opacity 0.8s var(--reveal-ease, cubic-bezier(0.16, 1, 0.3, 1)) var(--reveal-delay, 0s),
+      transform 0.8s var(--reveal-ease, cubic-bezier(0.16, 1, 0.3, 1)) var(--reveal-delay, 0s),
+      filter 0.8s var(--reveal-ease, cubic-bezier(0.16, 1, 0.3, 1)) var(--reveal-delay, 0s);
+    will-change: opacity, transform;
+  }
+
+  .reveal-element.is-visible {
+    opacity: 1;
+    transform: none;
+    filter: drop-shadow(0 10px 25px rgba(80, 63, 205, 0.08));
+  }
+
+  .micro-interaction {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .micro-interaction:hover {
+    transform: translateY(-2px);
+  }
+
+  .micro-interaction:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  @keyframes float-soft {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  .float-soft {
+    animation: float-soft 6s ease-in-out infinite;
+  }
+}

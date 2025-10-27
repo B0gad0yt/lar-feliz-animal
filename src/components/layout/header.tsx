@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, User, LogOut, Shield, UserCog, Heart } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
+import { MotionConfig } from 'framer-motion';
 
 import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,8 @@ import { getAuth, signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import type { User as AppUser, SiteConfig } from '@/lib/types';
+import { StaggerContainer } from '@/components/animations/stagger-container';
+import { Reveal } from '@/components/animations/reveal';
 
 
 import {
@@ -149,74 +152,98 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/90 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <div className="mr-4 flex items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <Logo className="h-8 w-8 text-primary" />
-            <span className="font-bold font-headline text-xl sm:inline-block">
-                {siteConfig?.title || 'Lar Feliz Animal'}
-            </span>
-          </Link>
-        </div>
-        <nav className="hidden md:flex flex-1 items-center space-x-6 text-sm font-medium">
-          {navItems.map((item) => (
-            <NavLink key={item.href} {...item} />
-          ))}
-        </nav>
-        <div className="flex flex-1 items-center justify-end space-x-2">
-          <ThemeToggle />
-          <UserNav />
-          <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" className="md:hidden px-2">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Abrir menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="bg-background/95 backdrop-blur-sm p-0">
+    <MotionConfig transition={{ ease: [0.16, 1, 0.3, 1] }}>
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/90 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60" data-animate="fade" data-animate-delay="0.05" data-animate-distance="16">
+        <div className="container flex h-16 items-center">
+          <div className="mr-4 flex items-center">
+            <Reveal as="div" className="flex items-center space-x-2">
+              <Link href="/" className="flex items-center space-x-2">
+                <Logo className="h-8 w-8 text-primary" />
+                <span className="font-bold font-headline text-xl sm:inline-block">
+                    {siteConfig?.title || 'Lar Feliz Animal'}
+                </span>
+              </Link>
+            </Reveal>
+          </div>
+          <nav className="hidden md:flex flex-1 items-center text-sm font-medium">
+            <StaggerContainer className="flex flex-1 items-center justify-end gap-6" stagger={0.08}>
+              {navItems.map((item) => (
+                <Reveal as="span" key={item.href} delay={0.05}>
+                  <NavLink {...item} />
+                </Reveal>
+              ))}
+            </StaggerContainer>
+          </nav>
+          <div className="flex flex-1 items-center justify-end space-x-2">
+            <Reveal as="span" delay={0.1}>
+              <ThemeToggle />
+            </Reveal>
+            <Reveal as="span" delay={0.12}>
+              <UserNav />
+            </Reveal>
+            <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="md:hidden px-2">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Abrir menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="bg-background/95 backdrop-blur-sm p-0">
                 <SheetTitle className="sr-only">Menu Principal</SheetTitle>
-              <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between p-4 border-b">
-                   <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>
                       <Logo className="h-8 w-8 text-primary" />
                       <span className="font-bold font-headline text-lg">{siteConfig?.title || 'Lar Feliz Animal'}</span>
                     </Link>
-                </div>
-                <nav className="flex flex-col space-y-4 p-4 text-lg">
-                  {navItems.map((item) => (
-                    <NavLink key={item.href} {...item} />
-                  ))}
-                  {isAdmin && <NavLink href="/admin" label="Painel Admin" />}
-                </nav>
-                 <div className="mt-auto p-4 border-t">
-                  {user ? (
-                     <div className="flex items-center space-x-4">
-                       <Avatar>
-                         <AvatarImage src={user.photoURL || ''} />
-                         <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
-                       </Avatar>
-                       <div>
-                         <p className="font-semibold">{user.displayName}</p>
-                         <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => { handleSignOut(); setSheetOpen(false); }}>Sair</Button>
-                       </div>
-                     </div>
-                  ) : (
-                    <div className="flex flex-col space-y-2">
-                        <Button asChild className="w-full" onClick={() => setSheetOpen(false)}>
+                  </div>
+                  <nav className="flex flex-col space-y-4 p-4 text-lg">
+                    <StaggerContainer className="flex flex-col space-y-4" stagger={0.1}>
+                      {navItems.map((item) => (
+                        <Reveal as="span" key={item.href}>
+                          <NavLink {...item} />
+                        </Reveal>
+                      ))}
+                      {isAdmin && (
+                        <Reveal as="span">
+                          <NavLink href="/admin" label="Painel Admin" />
+                        </Reveal>
+                      )}
+                    </StaggerContainer>
+                  </nav>
+                  <div className="mt-auto p-4 border-t">
+                    {user ? (
+                      <Reveal as="div" className="flex items-center space-x-4">
+                        <Avatar>
+                          <AvatarImage src={user.photoURL || ''} />
+                          <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold">{user.displayName}</p>
+                          <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => { handleSignOut(); setSheetOpen(false); }}>Sair</Button>
+                        </div>
+                      </Reveal>
+                    ) : (
+                      <StaggerContainer className="flex flex-col space-y-2" stagger={0.1}>
+                        <Reveal as="span">
+                          <Button asChild className="w-full" onClick={() => setSheetOpen(false)}>
                             <Link href="/login">Login</Link>
-                        </Button>
-                         <Button variant="outline" asChild className="w-full" onClick={() => setSheetOpen(false)}>
+                          </Button>
+                        </Reveal>
+                        <Reveal as="span">
+                          <Button variant="outline" asChild className="w-full" onClick={() => setSheetOpen(false)}>
                             <Link href="/register">Cadastre-se</Link>
-                        </Button>
-                    </div>
-                  )}
+                          </Button>
+                        </Reveal>
+                      </StaggerContainer>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </MotionConfig>
   );
 }

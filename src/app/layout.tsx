@@ -10,6 +10,8 @@ import { GoogleAnalytics } from '@/components/analytics';
 import { initializeFirebase } from '@/firebase';
 import { getDoc, doc } from 'firebase/firestore';
 import type { SiteConfig } from '@/lib/types';
+import { MotionOrchestrator } from '@/components/animations/motion-orchestrator';
+import { PageTransition } from '@/components/animations/page-transition';
 
 
 // Helper function to generate default metadata
@@ -164,8 +166,11 @@ export default function RootLayout({
         >
           <FirebaseClientProvider>
             <FavoritesProvider>
+              <MotionOrchestrator />
               <Header />
-              <main className="flex-grow">{children}</main>
+              <main className="flex-grow">
+                <PageTransition>{children}</PageTransition>
+              </main>
               <Footer />
               <Toaster />
             </FavoritesProvider>

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Heart } from 'lucide-react';
 import { useFavorites } from '@/hooks/use-favorites';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface AnimalCardProps {
   animal: Animal;
@@ -26,7 +27,13 @@ export function AnimalCard({ animal }: AnimalCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden flex flex-col group bg-card/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:-translate-y-1">
+    <motion.article
+      whileHover={{ y: -6, scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      className="group"
+    >
+    <Card className="overflow-hidden flex flex-col bg-card/70 backdrop-blur-sm border-0 shadow-lg transition-shadow duration-300 ease-in-out group-hover:shadow-2xl">
       <CardHeader className="p-0">
         <div className="relative w-full h-56 overflow-hidden">
           {image && (
@@ -84,5 +91,6 @@ export function AnimalCard({ animal }: AnimalCardProps) {
         </Button>
       </CardFooter>
     </Card>
+    </motion.article>
   );
 }
