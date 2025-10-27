@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ShareButton } from '@/components/share-button';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PawPrint, Heart, Stethoscope, Home, Calendar, Bone, Cat } from 'lucide-react';
 import { useDoc, useFirestore } from '@/firebase';
@@ -55,6 +56,9 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
     notFound();
   }
 
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_BASE_URL || 'https://larfelizanimal.com');
+  const animalUrl = `${baseUrl}/adopt/${animal.id}`;
+
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4">
       <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -76,8 +80,18 @@ export default function AnimalProfilePage({ params }: { params: { id: string } }
 
         <div className="flex flex-col space-y-6">
           <header>
-            <h1 className="text-4xl md:text-5xl font-bold font-headline">{animal.name}</h1>
-            <p className="text-xl text-muted-foreground mt-1">{animal.breed}</p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-4xl md:text-5xl font-bold font-headline">{animal.name}</h1>
+                <p className="text-xl text-muted-foreground mt-1">{animal.breed}</p>
+              </div>
+              <ShareButton
+                title={`Adote ${animal.name}!`}
+                description={animal.description}
+                url={animalUrl}
+                imageUrl={animal.photos[0]}
+              />
+            </div>
           </header>
 
           <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">

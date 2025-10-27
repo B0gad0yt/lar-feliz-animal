@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, User, LogOut, Shield, UserCog } from 'lucide-react';
+import { Menu, User, LogOut, Shield, UserCog, Heart } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 
 import { Logo } from '@/components/icons/logo';
@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useUser, useDoc, useFirestore } from '@/firebase';
+import { useFavorites } from '@/hooks/use-favorites';
 import { getAuth, signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
@@ -34,12 +35,14 @@ const navItems = [
   { href: '/matcher', label: 'Encontrar Match' },
   { href: '/education', label: 'Educação' },
   { href: '/shelters', label: 'Abrigos' },
+  { href: '/favorites', label: 'Favoritos', icon: Heart },
 ];
 
 export function Header() {
   const pathname = usePathname();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const { user, loading } = useUser();
+  const { favorites } = useFavorites();
   const firestore = useFirestore();
   const auth = getAuth();
   
@@ -55,19 +58,28 @@ export function Header() {
     signOut(auth);
   };
 
-  const NavLink = ({ href, label, className }: { href: string; label: string; className?: string }) => {
+  const NavLink = ({ href, label, icon: Icon, className }: { href: string; label: string; icon?: React.ComponentType<any>; className?: string }) => {
     const isActive = pathname === href;
+    const isFavorites = href === '/favorites';
+    const favCount = favorites.length;
+    
     return (
       <Link
         href={href}
         className={cn(
-          'text-foreground/70 transition-colors hover:text-foreground',
+          'text-foreground/70 transition-colors hover:text-foreground relative flex items-center gap-2',
           isActive && 'text-foreground font-semibold',
           className
         )}
         onClick={() => setSheetOpen(false)}
       >
+        {Icon && <Icon className="h-4 w-4" />}
         {label}
+        {isFavorites && favCount > 0 && (
+          <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-primary rounded-full">
+            {favCount}
+          </span>
+        )}
       </Link>
     );
   };

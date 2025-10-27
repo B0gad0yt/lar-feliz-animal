@@ -1,10 +1,14 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Animal } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
+import { useFavorites } from '@/hooks/use-favorites';
+import { cn } from '@/lib/utils';
 
 interface AnimalCardProps {
   animal: Animal;
@@ -12,6 +16,14 @@ interface AnimalCardProps {
 
 export function AnimalCard({ animal }: AnimalCardProps) {
   const image = animal.photos[0];
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorited = isFavorite(animal.id || '');
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(animal.id || '');
+  };
 
   return (
     <Card className="overflow-hidden flex flex-col group bg-card/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:-translate-y-1">
@@ -25,6 +37,23 @@ export function AnimalCard({ animal }: AnimalCardProps) {
               className="object-cover group-hover:scale-105 transition-transform duration-500 ease-in-out"
             />
           )}
+          <button
+            onClick={handleFavoriteClick}
+            className={cn(
+              "absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all duration-300",
+              favorited 
+                ? "bg-primary/90 text-primary-foreground scale-110" 
+                : "bg-background/70 text-foreground hover:bg-background/90 hover:scale-110"
+            )}
+            aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            <Heart 
+              className={cn(
+                "h-5 w-5 transition-all duration-300",
+                favorited && "fill-current"
+              )} 
+            />
+          </button>
         </div>
         <div className="p-4 pb-0">
            <CardTitle className="font-headline text-2xl">{animal.name}</CardTitle>

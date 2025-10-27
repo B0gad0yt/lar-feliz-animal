@@ -1,0 +1,18 @@
+# *
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://larfelizanimal.com/sitemap.xml
+
+# Disallow admin pages
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+
+# Allow images
+User-agent: Googlebot-Image
+Allow: /images/
+
+# Crawl delay
+Crawl-delay: 1

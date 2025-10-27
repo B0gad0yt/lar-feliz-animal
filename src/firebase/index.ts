@@ -15,21 +15,40 @@ import { useDoc } from './firestore/use-doc';
 import { useUser } from './auth/use-user';
 
 function initializeFirebase(): {
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  firebaseApp: FirebaseApp | null;
+  firestore: Firestore | null;
+  auth: Auth | null;
 } {
-  const firebaseApp = !getApps().length
-    ? initializeApp(firebaseConfig)
-    : getApp();
-  const firestore = getFirestore(firebaseApp);
-  const auth = getAuth(firebaseApp);
+  // Verifica se as variáveis de ambiente do Firebase estão configuradas
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    console.warn('Firebase config not found. Please set environment variables.');
+    return {
+      firebaseApp: null,
+      firestore: null,
+      auth: null,
+    };
+  }
 
-  return {
-    firebaseApp,
-    firestore,
-    auth,
-  };
+  try {
+    const firebaseApp = !getApps().length
+      ? initializeApp(firebaseConfig)
+      : getApp();
+    const firestore = getFirestore(firebaseApp);
+    const auth = getAuth(firebaseApp);
+
+    return {
+      firebaseApp,
+      firestore,
+      auth,
+    };
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+    return {
+      firebaseApp: null,
+      firestore: null,
+      auth: null,
+    };
+  }
 }
 
 export {

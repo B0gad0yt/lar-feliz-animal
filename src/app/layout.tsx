@@ -5,25 +5,129 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ThemeProvider } from '@/components/theme-provider';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { FavoritesProvider } from '@/hooks/use-favorites';
+import { GoogleAnalytics } from '@/components/analytics';
 import { initializeFirebase } from '@/firebase';
 import { getDoc, doc } from 'firebase/firestore';
 import type { SiteConfig } from '@/lib/types';
 
 
+// Helper function to generate default metadata
+function getDefaultMetadata(baseUrl: string, siteName: string, description: string): Metadata {
+  return {
+    metadataBase: new URL(baseUrl),
+    title: {
+      default: siteName,
+      template: `%s | ${siteName}`,
+    },
+    description,
+    keywords: [
+      'adoção de animais',
+      'adotar cachorro',
+      'adotar gato',
+      'abrigos de animais',
+      'pets para adoção',
+    ],
+    openGraph: {
+      type: 'website',
+      locale: 'pt_BR',
+      url: baseUrl,
+      title: siteName,
+      description,
+      siteName,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+    manifest: '/manifest.json',
+  };
+}
+
 // This function now dynamically generates metadata
 export async function generateMetadata(): Promise<Metadata> {
-  // Initialize server-side firebase to fetch config
-  const { firestore } = initializeFirebase();
-  const configRef = doc(firestore, 'config', 'site');
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://larfelizanimal.com';
+  const siteName = 'Lar Feliz Animal';
+  const description = 'Conectamos corações, um focinho de cada vez. Adote um pet e mude uma vida. Encontre seu amigo para sempre no Lar Feliz Animal.';
   
   try {
+    // Initialize server-side firebase to fetch config
+    const { firestore } = initializeFirebase();
+    
+    if (!firestore) {
+      console.warn('Firebase not configured, using default metadata');
+      return getDefaultMetadata(baseUrl, siteName, description);
+    }
+    
+    const configRef = doc(firestore, 'config', 'site');
     const configSnap = await getDoc(configRef);
 
     if (configSnap.exists()) {
       const siteConfig = configSnap.data() as SiteConfig;
+      const title = siteConfig.title || siteName;
+      
       return {
-        title: siteConfig.title || 'Lar Feliz Animal',
-        description: 'Encontre seu amigo para sempre.',
+        metadataBase: new URL(baseUrl),
+        title: {
+          default: title,
+          template: `%s | ${title}`,
+        },
+        description,
+        keywords: [
+          'adoção de animais',
+          'adotar cachorro',
+          'adotar gato',
+          'abrigos de animais',
+          'pets para adoção',
+          'resgate animal',
+          'adoção responsável',
+          'animais abandonados',
+          'ONG animais',
+          'proteção animal',
+        ],
+        authors: [{ name: 'Lar Feliz Animal' }],
+        creator: 'Lar Feliz Animal',
+        publisher: 'Lar Feliz Animal',
+        openGraph: {
+          type: 'website',
+          locale: 'pt_BR',
+          url: baseUrl,
+          title,
+          description,
+          siteName,
+          images: [
+            {
+              url: `${baseUrl}/images/og-image.jpg`,
+              width: 1200,
+              height: 630,
+              alt: 'Lar Feliz Animal - Adote um amigo',
+            },
+          ],
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title,
+          description,
+          images: [`${baseUrl}/images/og-image.jpg`],
+          creator: '@larfelizanimal',
+        },
+        robots: {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+          },
+        },
+        icons: {
+          icon: '/favicon.ico',
+          shortcut: '/favicon-16x16.png',
+          apple: '/apple-touch-icon.png',
+        },
+        manifest: '/manifest.json',
       };
     }
   } catch (error) {
@@ -31,10 +135,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   // Fallback metadata
-  return {
-    title: 'Lar Feliz Animal',
-    description: 'Encontre seu amigo para sempre.',
-  };
+  return getDefaultMetadata(baseUrl, siteName, description);
 }
 
 
@@ -54,6 +155,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen">
+        <GoogleAnalytics measurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -61,10 +163,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FirebaseClientProvider>
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-            <Toaster />
+            <FavoritesProvider>
+              <Header />
+              <main className="flex-grow">{children}</main>
+              <Footer />
+              <Toaster />
+            </FavoritesProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
       </body>
