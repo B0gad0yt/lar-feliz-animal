@@ -16,6 +16,7 @@ import { getAuth, signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import type { User as AppUser, SiteConfig } from '@/lib/types';
+import { SimpleAvatar } from '@/components/ui/simple-avatar';
 
 
 import {
@@ -26,7 +27,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 const navItems = [
@@ -91,25 +91,17 @@ export function Header() {
 
     if (user) {
       const userInitial = (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
-      const photoUrl = user.photoURL || undefined;
       
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-9 w-9">
-                {photoUrl ? (
-                  <AvatarImage 
-                    src={photoUrl} 
-                    alt={user.displayName || 'Usuário'}
-                    onError={(e) => {
-                      console.error('Error loading avatar image:', photoUrl);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : null}
-                <AvatarFallback>{userInitial}</AvatarFallback>
-              </Avatar>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+              <SimpleAvatar
+                src={user.photoURL}
+                alt={user.displayName || 'Usuário'}
+                fallback={userInitial}
+                className="h-9 w-9"
+              />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -204,19 +196,11 @@ export function Header() {
                  <div className="mt-auto p-4 border-t">
                   {user ? (
                      <div className="flex items-center space-x-4">
-                       <Avatar>
-                         {user.photoURL ? (
-                           <AvatarImage 
-                             src={user.photoURL} 
-                             alt={user.displayName || 'Usuário'}
-                             onError={(e) => {
-                               console.error('Error loading avatar image in mobile menu');
-                               e.currentTarget.style.display = 'none';
-                             }}
-                           />
-                         ) : null}
-                         <AvatarFallback>{(user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
-                       </Avatar>
+                       <SimpleAvatar
+                         src={user.photoURL}
+                         alt={user.displayName || 'Usuário'}
+                         fallback={(user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
+                       />
                        <div>
                          <p className="font-semibold">{user.displayName}</p>
                          <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => { handleSignOut(); setSheetOpen(false); }}>Sair</Button>
