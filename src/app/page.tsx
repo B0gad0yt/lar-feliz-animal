@@ -42,7 +42,7 @@ export default function Home() {
               src={heroImage.imageUrl}
               alt={heroImage.description}
               fill
-              className="object-cover object-[center_30%] md:object-center"
+              className="object-cover object-center"
               priority
               data-ai-hint={heroImage.imageHint}
             />

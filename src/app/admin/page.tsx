@@ -319,10 +319,10 @@ function DashboardOverview({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
           <Card key={card.label} className="border border-border/60 bg-card/80 shadow-sm">
-            <CardContent className="flex items-start gap-4 p-5">
+            <CardContent className="flex items-start gap-4 p-6">
               <div className="rounded-full bg-primary/10 p-3 text-primary">
                 <card.icon className="h-5 w-5" />
               </div>
