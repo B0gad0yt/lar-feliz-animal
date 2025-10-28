@@ -98,11 +98,20 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-9 w-9">
+              <Avatar className="h-9 w-9 border border-white/40 bg-background/70 shadow-sm">
                 {user.photoURL ? (
-                  <AvatarImage src={user.photoURL} alt={user.displayName || 'Usuário'} />
+                  <AvatarImage
+                    src={user.photoURL}
+                    alt={user.displayName || 'Usuário'}
+                    className="object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none';
+                    }}
+                  />
                 ) : null}
-                <AvatarFallback>{fallbackInitial}</AvatarFallback>
+                <AvatarFallback className="bg-primary/90 text-primary-foreground font-semibold">
+                  {fallbackInitial}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -217,9 +226,19 @@ export function Header() {
                   <div className="mt-auto p-4 border-t">
                     {user ? (
                       <Reveal as="div" className="flex items-center space-x-4">
-                        <Avatar>
-                          {user.photoURL ? <AvatarImage src={user.photoURL} /> : null}
-                          <AvatarFallback>{fallbackInitial}</AvatarFallback>
+                        <Avatar className="border border-border/40 bg-background/70 shadow-sm">
+                          {user.photoURL ? (
+                            <AvatarImage
+                              src={user.photoURL}
+                              className="object-cover"
+                              onError={(event) => {
+                                event.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : null}
+                          <AvatarFallback className="bg-primary/90 text-primary-foreground font-semibold">
+                            {fallbackInitial}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="font-semibold">{user.displayName}</p>
