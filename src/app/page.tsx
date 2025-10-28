@@ -31,9 +31,13 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center">
       {/* Hero Section */}
-      <section className="w-full relative overflow-hidden" data-animate="off" data-motion="manual">
-        <div className="relative w-full h-[75vh] md:h-[85vh]">
-          {heroImage && (
+      <section
+        className="relative w-full min-h-[75vh] md:min-h-[85vh] text-white"
+        data-animate="off"
+        data-motion="manual"
+      >
+        {heroImage && (
+          <div className="absolute inset-0">
             <Image
               src={heroImage.imageUrl}
               alt={heroImage.description}
@@ -42,11 +46,14 @@ export default function Home() {
               priority
               data-ai-hint={heroImage.imageHint}
             />
-          )}
-          <div className="absolute inset-0 bg-black/50" />
-        </div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-white">
-          <StaggerContainer className="w-full max-w-5xl space-y-8 text-center md:text-left" stagger={0.2}>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="relative z-10 w-full px-4 py-16 md:py-24">
+          <StaggerContainer
+            className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 text-center md:items-start md:text-left"
+            stagger={0.2}
+          >
             <Reveal
               as="span"
               className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm uppercase tracking-[0.3em]"
@@ -56,11 +63,15 @@ export default function Home() {
             <Reveal as="h1" className="text-4xl md:text-6xl font-headline font-bold drop-shadow-lg">
               Encontre seu amigo para sempre
             </Reveal>
-            <Reveal as="p" delay={0.1} className="text-lg md:text-2xl max-w-2xl mx-auto md:mx-0 drop-shadow-md">
+            <Reveal as="p" delay={0.1} className="max-w-2xl text-lg md:text-2xl drop-shadow-md">
               Somos uma ponte entre protetores dedicados e tutores responsáveis. Cada adoção conta com orientação
               personalizada, suporte emocional e recursos gratuitos para garantir uma adaptação feliz.
             </Reveal>
-            <Reveal as="div" delay={0.2} className="flex flex-col items-center gap-4 md:flex-row">
+            <Reveal
+              as="div"
+              delay={0.2}
+              className="flex w-full flex-col items-center gap-4 md:w-auto md:flex-row md:items-center md:gap-6"
+            >
               <Button asChild size="lg" className="font-bold text-lg py-6 px-8">
                 <Link href="/adopt">Adote Agora</Link>
               </Button>
@@ -71,7 +82,7 @@ export default function Home() {
             <Reveal as="p" delay={0.25} className="text-sm md:text-base text-white/80">
               Já ajudamos {formattedAdoptions} famílias a encontrarem seus companheiros ideais.
             </Reveal>
-            <StaggerContainer className="grid gap-4 md:grid-cols-3" stagger={0.12}>
+            <StaggerContainer className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3" stagger={0.12}>
               {highlights.map(({ icon: Icon, title, description }) => (
                 <Reveal
                   key={title}
