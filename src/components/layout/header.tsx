@@ -98,7 +98,16 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={photoUrl} alt={user.displayName || 'Usuário'} />
+                {photoUrl ? (
+                  <AvatarImage 
+                    src={photoUrl} 
+                    alt={user.displayName || 'Usuário'}
+                    onError={(e) => {
+                      console.error('Error loading avatar image:', photoUrl);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : null}
                 <AvatarFallback>{userInitial}</AvatarFallback>
               </Avatar>
             </Button>
@@ -196,7 +205,16 @@ export function Header() {
                   {user ? (
                      <div className="flex items-center space-x-4">
                        <Avatar>
-                         <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Usuário'} />
+                         {user.photoURL ? (
+                           <AvatarImage 
+                             src={user.photoURL} 
+                             alt={user.displayName || 'Usuário'}
+                             onError={(e) => {
+                               console.error('Error loading avatar image in mobile menu');
+                               e.currentTarget.style.display = 'none';
+                             }}
+                           />
+                         ) : null}
                          <AvatarFallback>{(user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
                        </Avatar>
                        <div>
