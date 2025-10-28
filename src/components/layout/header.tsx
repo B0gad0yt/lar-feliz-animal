@@ -192,7 +192,9 @@ export function Header() {
             <Reveal as="span" delay={0.1}>
               <ThemeToggle />
             </Reveal>
-            <UserNav />
+            <div data-animate-disable data-motion="manual">
+              <UserNav />
+            </div>
             <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" className="md:hidden px-2">
@@ -225,7 +227,7 @@ export function Header() {
                   </nav>
                   <div className="mt-auto p-4 border-t">
                     {user ? (
-                      <Reveal as="div" className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-4" data-animate-disable data-motion="manual">
                         <Avatar className="border border-border/40 bg-background/70 shadow-sm">
                           {user.photoURL ? (
                             <AvatarImage
@@ -244,7 +246,7 @@ export function Header() {
                           <p className="font-semibold">{user.displayName}</p>
                           <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => { handleSignOut(); setSheetOpen(false); }}>Sair</Button>
                         </div>
-                      </Reveal>
+                      </div>
                     ) : (
                       <StaggerContainer className="flex flex-col space-y-2" stagger={0.1}>
                         <Reveal as="span">
