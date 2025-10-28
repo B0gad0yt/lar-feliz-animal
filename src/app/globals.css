@@ -134,4 +134,17 @@ body {
       object-position: 45% center !important;
     }
   }
+
+  /* Marketing panel margin adjustments */
+  @media (max-width: 767.78px) {
+    .marketing-panel {
+      margin-bottom: 60px !important;
+    }
+  }
+
+  @media (max-width: 626.68px) {
+    .marketing-panel {
+      margin-bottom: 110px !important;
+    }
+  }
 }

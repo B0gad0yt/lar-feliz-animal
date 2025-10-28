@@ -34,7 +34,7 @@ const HIGHLIGHT_STATS = [
 
 export function AuthMarketingPanel() {
   return (
-    <section className="relative hidden flex-col justify-between gap-10 bg-gradient-to-br from-primary via-primary/90 to-primary-foreground/40 p-8 text-white lg:flex">
+    <section className="marketing-panel relative hidden flex-col justify-between gap-10 bg-gradient-to-br from-primary via-primary/90 to-primary-foreground/40 p-8 text-white lg:flex">
       <div>
         <Badge variant="secondary" className="bg-white/20 text-white">
           Portal seguro
