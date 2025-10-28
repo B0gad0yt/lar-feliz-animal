@@ -1,8 +1,20 @@
+'use client';
+
+import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Shield, Eye, Lock, Database, UserCheck, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
+import type { SiteConfig } from '@/lib/types';
 
 export default function PrivacyPage() {
+  const firestore = useFirestore();
+  const configRef = useMemo(() => (firestore ? (doc(firestore, 'config', 'site') as DocumentReference<SiteConfig>) : null), [firestore]);
+  const { data: siteConfig } = useDoc<SiteConfig>(configRef);
+  
+  const siteName = siteConfig?.title || 'Lar Feliz Animal';
   return (
     <div className="container mx-auto py-12 px-4 max-w-4xl">
       <header className="text-center mb-12">
@@ -25,7 +37,7 @@ export default function PrivacyPage() {
                 Coletamos informações que você nos fornece diretamente ao:
               </p>
               <ul className="list-disc list-inside space-y-2 text-foreground/80">
-                <li>Criar uma conta no Lar Feliz Animal</li>
+                <li>Criar uma conta no {siteName}</li>
                 <li>Preencher formulários de adoção</li>
                 <li>Entrar em contato conosco</li>
                 <li>Interagir com nossa plataforma (favoritos, pesquisas)</li>

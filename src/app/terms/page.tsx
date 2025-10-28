@@ -1,8 +1,20 @@
+'use client';
+
+import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { FileText, AlertCircle, Scale, UserX, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { useFirestore, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
+import type { SiteConfig } from '@/lib/types';
 
 export default function TermsPage() {
+  const firestore = useFirestore();
+  const configRef = useMemo(() => (firestore ? (doc(firestore, 'config', 'site') as DocumentReference<SiteConfig>) : null), [firestore]);
+  const { data: siteConfig } = useDoc<SiteConfig>(configRef);
+  
+  const siteName = siteConfig?.title || 'Lar Feliz Animal';
   return (
     <div className="container mx-auto py-12 px-4 max-w-4xl">
       <header className="text-center mb-12">
@@ -19,7 +31,7 @@ export default function TermsPage() {
         <Card className="p-6 bg-card/70 backdrop-blur-sm border-0 shadow-lg">
           <h2 className="text-2xl font-headline font-bold mb-3">1. Aceitação dos Termos</h2>
           <p className="text-foreground/80">
-            Ao acessar e usar o Lar Feliz Animal, você concorda em cumprir e estar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não use nossa plataforma.
+            Ao acessar e usar o {siteName}, você concorda em cumprir e estar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não use nossa plataforma.
           </p>
         </Card>
 
@@ -29,7 +41,7 @@ export default function TermsPage() {
             <div>
               <h2 className="text-2xl font-headline font-bold mb-3">2. Descrição do Serviço</h2>
               <p className="text-foreground/80 mb-3">
-                O Lar Feliz Animal é uma plataforma que conecta pessoas interessadas em adotar animais com abrigos e organizações de resgate. Oferecemos:
+                O {siteName} é uma plataforma que conecta pessoas interessadas em adotar animais com abrigos e organizações de resgate. Oferecemos:
               </p>
               <ul className="list-disc list-inside space-y-2 text-foreground/80">
                 <li>Perfis detalhados de animais disponíveis para adoção</li>
@@ -67,7 +79,7 @@ export default function TermsPage() {
             <div>
               <h2 className="text-2xl font-headline font-bold mb-3">4. Processo de Adoção</h2>
               <p className="text-foreground/80 mb-3">
-                <strong>Importante:</strong> O Lar Feliz Animal é uma plataforma intermediária. A decisão final sobre adoções é dos abrigos e organizações parceiras.
+                <strong>Importante:</strong> O {siteName} é uma plataforma intermediária. A decisão final sobre adoções é dos abrigos e organizações parceiras.
               </p>
               <ul className="list-disc list-inside space-y-2 text-foreground/80">
                 <li>Preencher um formulário não garante a adoção</li>
@@ -100,7 +112,7 @@ export default function TermsPage() {
             <div>
               <h2 className="text-2xl font-headline font-bold mb-3">6. Isenção de Responsabilidade</h2>
               <p className="text-foreground/80 mb-3">
-                <strong>O Lar Feliz Animal NÃO se responsabiliza por:</strong>
+                <strong>O {siteName} NÃO se responsabiliza por:</strong>
               </p>
               <ul className="list-disc list-inside space-y-2 text-foreground/80">
                 <li>Decisões de adoção tomadas pelos abrigos parceiros</li>
@@ -116,7 +128,7 @@ export default function TermsPage() {
         <Card className="p-6 bg-card/70 backdrop-blur-sm border-0 shadow-lg">
           <h2 className="text-2xl font-headline font-bold mb-3">7. Propriedade Intelectual</h2>
           <p className="text-foreground/80">
-            Todo o conteúdo da plataforma (textos, imagens, logotipos, design) é propriedade do Lar Feliz Animal ou de seus licenciadores e está protegido por leis de direitos autorais. Você não pode usar, copiar ou distribuir esse conteúdo sem autorização prévia por escrito.
+            Todo o conteúdo da plataforma (textos, imagens, logotipos, design) é propriedade do {siteName} ou de seus licenciadores e está protegido por leis de direitos autorais. Você não pode usar, copiar ou distribuir esse conteúdo sem autorização prévia por escrito.
           </p>
         </Card>
 

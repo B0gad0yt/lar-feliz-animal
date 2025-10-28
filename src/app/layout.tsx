@@ -50,7 +50,7 @@ function getDefaultMetadata(baseUrl: string, siteName: string, description: stri
 export async function generateMetadata(): Promise<Metadata> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://larfelizanimal.com';
   const siteName = 'Lar Feliz Animal';
-  const description = 'Conectamos corações, um focinho de cada vez. Adote um pet e mude uma vida. Encontre seu amigo para sempre no Lar Feliz Animal.';
+  const description = `Conectamos corações, um focinho de cada vez. Adote um pet e mude uma vida. Encontre seu amigo para sempre no ${siteName}.`;
   
   try {
     // Initialize server-side firebase to fetch config
@@ -87,9 +87,9 @@ export async function generateMetadata(): Promise<Metadata> {
           'ONG animais',
           'proteção animal',
         ],
-        authors: [{ name: 'Lar Feliz Animal' }],
-        creator: 'Lar Feliz Animal',
-        publisher: 'Lar Feliz Animal',
+        authors: [{ name: title }],
+        creator: title,
+        publisher: title,
         openGraph: {
           type: 'website',
           locale: 'pt_BR',
@@ -102,7 +102,7 @@ export async function generateMetadata(): Promise<Metadata> {
               url: `${baseUrl}/images/og-image.jpg`,
               width: 1200,
               height: 630,
-              alt: 'Lar Feliz Animal - Adote um amigo',
+              alt: `${title} - Adote um amigo`,
             },
           ],
         },
