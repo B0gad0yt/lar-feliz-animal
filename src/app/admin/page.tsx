@@ -1507,7 +1507,7 @@ export default function AdminPage() {
         />
       )}
       <Tabs defaultValue="animals" className="w-full">
-        <TabsList className="mb-8 flex w-full flex-wrap justify-center gap-3 bg-transparent p-0">
+        <TabsList className="admin-tabs-nav mb-8 flex w-full flex-wrap justify-center gap-3 bg-transparent p-0">
           <TabsTrigger value="animals" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
             <Bone className="h-4 w-4" /> Animais
           </TabsTrigger>
