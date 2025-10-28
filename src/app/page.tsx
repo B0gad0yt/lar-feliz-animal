@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { PawPrint, Heart, BookOpen } from 'lucide-react';
+import { PawPrint, Heart, BookOpen, Users, Sparkles, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -9,12 +9,30 @@ import { Reveal } from '@/components/animations/reveal';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-dog-1');
+  const highlights = [
+    {
+      icon: Users,
+      title: 'Comunidade acolhedora',
+      description: 'Mais de 120 adoções concluídas com acompanhamento de voluntários.',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Processo seguro',
+      description: 'Triagem responsável, visitas supervisionadas e suporte contínuo aos tutores.',
+    },
+    {
+      icon: Sparkles,
+      title: 'Experiência personalizada',
+      description: 'Recomendações inteligentes que alinham estilo de vida, personalidade e rotina.',
+    },
+  ];
+  const formattedAdoptions = new Intl.NumberFormat('pt-BR').format(120);
 
   return (
     <div className="flex flex-col items-center">
       {/* Hero Section */}
-  <section className="w-full relative text-center overflow-hidden" data-animate="off" data-motion="manual">
-        <div className="relative w-full h-[60vh] md:h-[70vh]">
+      <section className="w-full relative overflow-hidden" data-animate="off" data-motion="manual">
+        <div className="relative w-full h-[75vh] md:h-[85vh]">
           {heroImage && (
             <Image
               src={heroImage.imageUrl}
@@ -27,29 +45,52 @@ export default function Home() {
           )}
           <div className="absolute inset-0 bg-black/50" />
         </div>
-        <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-4">
-          <StaggerContainer className="flex flex-col items-center" stagger={0.2}>
-            <Reveal as="h1" className="text-4xl md:text-6xl font-headline font-bold drop-shadow-lg text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-white">
+          <StaggerContainer className="w-full max-w-5xl space-y-8 text-center md:text-left" stagger={0.2}>
+            <Reveal
+              as="span"
+              className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm uppercase tracking-[0.3em]"
+            >
+              Cuidando de vidas há mais de 10 anos
+            </Reveal>
+            <Reveal as="h1" className="text-4xl md:text-6xl font-headline font-bold drop-shadow-lg">
               Encontre seu amigo para sempre
             </Reveal>
-            <Reveal
-              as="p"
-              delay={0.1}
-              className="mt-4 text-lg md:text-2xl max-w-2xl drop-shadow-md text-center"
-            >
-              Conectamos corações, um focinho de cada vez. Adote um pet e mude uma vida.
+            <Reveal as="p" delay={0.1} className="text-lg md:text-2xl max-w-2xl mx-auto md:mx-0 drop-shadow-md">
+              Somos uma ponte entre protetores dedicados e tutores responsáveis. Cada adoção conta com orientação
+              personalizada, suporte emocional e recursos gratuitos para garantir uma adaptação feliz.
             </Reveal>
-            <Reveal as="div" delay={0.2} className="mt-8">
+            <Reveal as="div" delay={0.2} className="flex flex-col items-center gap-4 md:flex-row">
               <Button asChild size="lg" className="font-bold text-lg py-6 px-8">
                 <Link href="/adopt">Adote Agora</Link>
               </Button>
+              <Button asChild size="lg" variant="secondary" className="font-semibold text-lg py-6 px-8">
+                <Link href="/education">Conheça o Processo</Link>
+              </Button>
             </Reveal>
+            <Reveal as="p" delay={0.25} className="text-sm md:text-base text-white/80">
+              Já ajudamos {formattedAdoptions} famílias a encontrarem seus companheiros ideais.
+            </Reveal>
+            <StaggerContainer className="grid gap-4 md:grid-cols-3" stagger={0.12}>
+              {highlights.map(({ icon: Icon, title, description }) => (
+                <Reveal
+                  key={title}
+                  className="rounded-2xl border border-white/20 bg-white/10 p-5 text-left backdrop-blur-md"
+                >
+                  <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="font-headline text-lg font-semibold">{title}</p>
+                  <p className="mt-2 text-sm text-white/80">{description}</p>
+                </Reveal>
+              ))}
+            </StaggerContainer>
           </StaggerContainer>
         </div>
       </section>
 
       {/* Features Section */}
-  <section className="w-full max-w-6xl mx-auto py-16 px-4" data-animate="off" data-motion="manual">
+      <section className="w-full max-w-6xl mx-auto py-16 px-4" data-animate="off" data-motion="manual">
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-8" stagger={0.25}>
           <Reveal as="article" className="text-center bg-card/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
             <CardHeader>

@@ -158,7 +158,9 @@ export function Header() {
           <div className="mr-4 flex items-center">
             <Reveal as="div" className="flex items-center space-x-2">
               <Link href="/" className="flex items-center space-x-2">
-                <Logo className="h-8 w-8 text-primary" />
+                <span className="float-soft">
+                  <Logo className="h-8 w-8 text-primary" />
+                </span>
                 <span className="font-bold font-headline text-xl sm:inline-block">
                     {siteConfig?.title || 'Lar Feliz Animal'}
                 </span>
@@ -178,9 +180,7 @@ export function Header() {
             <Reveal as="span" delay={0.1}>
               <ThemeToggle />
             </Reveal>
-            <Reveal as="span" delay={0.12}>
-              <UserNav />
-            </Reveal>
+            <UserNav />
             <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" className="md:hidden px-2">
