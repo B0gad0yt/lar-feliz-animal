@@ -90,13 +90,15 @@ export function Header() {
     }
 
     if (user) {
+      const userInitial = (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
+      
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'Usuário'} />
-                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || 'Usuário'} />}
+                <AvatarFallback>{userInitial}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -193,8 +195,8 @@ export function Header() {
                   {user ? (
                      <div className="flex items-center space-x-4">
                        <Avatar>
-                         <AvatarImage src={user.photoURL || ''} />
-                         <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
+                         {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || 'Usuário'} />}
+                         <AvatarFallback>{(user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
                        </Avatar>
                        <div>
                          <p className="font-semibold">{user.displayName}</p>
