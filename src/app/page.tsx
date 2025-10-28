@@ -37,12 +37,12 @@ export default function Home() {
         data-motion="manual"
       >
         {heroImage && (
-          <div className="absolute inset-0 flex justify-center items-center md:block">
+          <div className="absolute inset-0">
             <Image
               src={heroImage.imageUrl}
               alt={heroImage.description}
               fill
-              className="object-cover md:object-cover object-center"
+              className="object-cover object-[center_30%] md:object-center"
               priority
               data-ai-hint={heroImage.imageHint}
             />
