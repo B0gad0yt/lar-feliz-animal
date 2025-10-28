@@ -129,35 +129,7 @@ body {
   }
 
   /* Dialog animations */
-  @keyframes dialog-show {
-    from {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-  }
-
-  @keyframes dialog-hide {
-    from {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    to {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.95);
-    }
-  }
-
-  .dialog-animate-in {
-    animation: dialog-show 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .dialog-animate-out {
-    animation: dialog-hide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+  /* Removidas animações anteriores do dialog para centralização estática */
 
   /* Hero image positioning for very small screens */
   @media (max-width: 640px) {
@@ -167,15 +139,27 @@ body {
   }
 
   /* Marketing panel margin adjustments */
-  @media (max-width: 767.78px) {
+@media (max-width: 767.78px) {
     .admin-tabs-nav {
-      margin-bottom: 60px !important;
+        margin-bottom:60px!important
     }
-  }
+}
 
-  @media (max-width: 626.68px) {
+@media (max-width: 426.68px) {
     .admin-tabs-nav {
-      margin-bottom: 110px !important;
+        margin-bottom:110px!important
     }
-  }
+}
+
+@media (max-width: 303.33px) {
+    .admin-tabs-nav {
+        margin-bottom:150px!important
+    }
+}
+
+@media (max-width: 296.67px) {
+    .admin-tabs-nav {
+        margin-bottom:200px!important
+    }
+}
 }
