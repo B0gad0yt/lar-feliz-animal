@@ -127,4 +127,11 @@ body {
   .float-soft {
     animation: float-soft 6s ease-in-out infinite;
   }
+
+  /* Hero image positioning for very small screens */
+  @media (max-width: 640px) {
+    .hero-image {
+      object-position: center center !important;
+    }
+  }
 }
