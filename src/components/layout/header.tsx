@@ -90,14 +90,8 @@ export function Header() {
     }
 
     if (user) {
-      console.log('Header User Data:', { 
-        photoURL: user.photoURL, 
-        displayName: user.displayName,
-        email: user.email 
-      });
-      
       const userInitial = (user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase();
-      const photoUrl = user.photoURL?.trim() || undefined;
+      const photoUrl = user.photoURL || undefined;
       
       return (
         <DropdownMenu>
@@ -202,7 +196,7 @@ export function Header() {
                   {user ? (
                      <div className="flex items-center space-x-4">
                        <Avatar>
-                         <AvatarImage src={user.photoURL?.trim() || undefined} alt={user.displayName || 'Usuário'} />
+                         <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Usuário'} />
                          <AvatarFallback>{(user.displayName?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
                        </Avatar>
                        <div>
