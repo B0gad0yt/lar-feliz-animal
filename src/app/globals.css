@@ -131,7 +131,7 @@ body {
   /* Hero image positioning for very small screens */
   @media (max-width: 640px) {
     .hero-image {
-      object-position: 40% center !important;
+      object-position: 45% center !important;
     }
   }
 }
