@@ -56,6 +56,7 @@ export function Header() {
   const { data: siteConfig } = useDoc<SiteConfig>(configRef);
   
   const isAdmin = appUser?.role === 'operator' || appUser?.role === 'shelterAdmin';
+  const fallbackInitial = (user?.displayName ?? user?.email ?? '?').charAt(0).toUpperCase();
 
   const handleSignOut = () => {
     signOut(auth);
@@ -98,8 +99,10 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'Usuário'} />
-                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                {user.photoURL ? (
+                  <AvatarImage src={user.photoURL} alt={user.displayName || 'Usuário'} />
+                ) : null}
+                <AvatarFallback>{fallbackInitial}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -215,8 +218,8 @@ export function Header() {
                     {user ? (
                       <Reveal as="div" className="flex items-center space-x-4">
                         <Avatar>
-                          <AvatarImage src={user.photoURL || ''} />
-                          <AvatarFallback>{user.displayName?.charAt(0)}</AvatarFallback>
+                          {user.photoURL ? <AvatarImage src={user.photoURL} /> : null}
+                          <AvatarFallback>{fallbackInitial}</AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="font-semibold">{user.displayName}</p>
