@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { SlidersHorizontal, PawPrint } from 'lucide-react';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StaggerContainer } from '@/components/animations/stagger-container';
 import { Reveal } from '@/components/animations/reveal';
@@ -75,11 +76,12 @@ export default function AdoptPage() {
       <div className="flex flex-col md:flex-row gap-8">
         <aside className="w-full md:w-1/4 lg:w-1/5">
           <Reveal as="section" className="sticky top-24">
-            <Card className="p-4 bg-card/70 backdrop-blur-sm shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <SlidersHorizontal className="mr-2 h-5 w-5" />
-                Filtros
-              </h3>
+            <CollapsibleSection
+              title={
+                <span className="flex items-center"><SlidersHorizontal className="mr-2 h-5 w-5" /> Filtros</span>
+              }
+              defaultCollapsed
+            >
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="search">Pesquisar</Label>
@@ -132,29 +134,29 @@ export default function AdoptPage() {
                   </Select>
                 </div>
               </div>
-            </Card>
+            </CollapsibleSection>
           </Reveal>
         </aside>
         <main className="w-full md:w-3/4 lg:w-4/5">
-          {animalsLoading ? renderSkeleton() : (
-            filteredAnimals.length > 0 ? (
-                <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" stagger={0.12}>
+          <CollapsibleSection title={<span>Resultados ({filteredAnimals.length})</span>} defaultCollapsed forceMount>
+            {animalsLoading ? (
+              renderSkeleton()
+            ) : filteredAnimals.length > 0 ? (
+              <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" stagger={0.12}>
                 {filteredAnimals.map((animal) => (
-                    <Reveal as="article" key={animal.id}>
-                      <AnimalCard animal={animal} />
-                    </Reveal>
+                  <Reveal as="article" key={animal.id}>
+                    <AnimalCard animal={animal} />
+                  </Reveal>
                 ))}
-                </StaggerContainer>
+              </StaggerContainer>
             ) : (
-                <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg">
-                    <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-semibold">Nenhum animal encontrado</h3>
-                    <p className="text-muted-foreground mt-2">
-                        Tente ajustar seus filtros para encontrar seu novo amigo.
-                    </p>
-                </Card>
-            )
-          )}
+              <Card className="flex flex-col items-center justify-center p-12 text-center bg-card/70 backdrop-blur-sm shadow-lg">
+                <PawPrint className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold">Nenhum animal encontrado</h3>
+                <p className="text-muted-foreground mt-2">Tente ajustar seus filtros para encontrar seu novo amigo.</p>
+              </Card>
+            )}
+          </CollapsibleSection>
         </main>
       </div>
     </div>

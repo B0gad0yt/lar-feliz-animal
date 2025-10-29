@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { getAuth, createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -103,52 +103,25 @@ export default function RegisterPage() {
       return;
     }
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
-      await updateProfile(user, { displayName: values.name });
-
-      // Enviar email de verificação
-      const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'http://localhost:3000';
-      const actionCodeSettings = {
-        url: `${appOrigin}/verify-email`,
-        handleCodeInApp: true,
-      };
-
-      await sendEmailVerification(user, actionCodeSettings);
-
-      if (firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
-        const newUser: AppUser = {
-            uid: user.uid,
-            email: user.email,
-            displayName: values.name,
-            photoURL: user.photoURL,
-            role: 'user' // Default role
-        };
-        
-        setDoc(userDocRef, newUser).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'create',
-                requestResourceData: newUser,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: values.email, password: values.password, name: values.name }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ variant: 'destructive', title: 'Erro no cadastro', description: data.error || 'Falha ao criar conta.' });
+        return;
       }
-      
+
       toast({
         title: 'Cadastro realizado!',
-        description: 'Enviamos um email de verificação. Confirme seu email para acessar o sistema.'
+        description: 'Verifique seu email para concluir a ativação. Limite de 1 conta por IP/dia aplicado.'
       });
-      
-      // Fazer logout para forçar a verificação
       setShowVerificationAlert(true);
-      await auth.signOut();
-      
-      // Dar tempo para o usuário ler o alerta antes de redirecionar
-      setTimeout(() => {
-        router.push('/login');
-      }, 5000);
+      // Usuário é criado no Firebase Auth mas sem userDoc; aguarda verificação antes de persistir via login.
+      await auth.signOut().catch(() => {});
+      setTimeout(() => router.push('/login'), 5000);
     } catch (error: any) {
       console.error(error);
       toast({

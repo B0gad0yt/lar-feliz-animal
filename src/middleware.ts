@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getAuth, type User } from 'firebase/auth';
-import { cookies } from 'next/headers';
 
 // Rotas que não precisam de autenticação
 const publicRoutes = [
@@ -14,22 +12,23 @@ const publicRoutes = [
 ];
 
 export async function middleware(request: NextRequest) {
-  // Verifica se é uma rota pública
-  const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route));
-  if (isPublicRoute) {
-    return NextResponse.next();
-  }
+  const pathname = request.nextUrl.pathname;
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  if (isPublicRoute) return NextResponse.next();
 
-  // NOTE: Não use `firebase/auth` (SDK do cliente) dentro do middleware do
-  // Next.js — o middleware roda em um runtime diferente (edge) e não tem
-  // acesso ao estado do cliente. A tentativa anterior de chamar `getAuth()`
-  // e `auth.currentUser` causava comportamento incorreto (usuários eram
-  // redirecionados para /login mesmo estando autenticados). Para uma verificação
-  // segura no middleware é necessário validar um cookie assinado/jwt no servidor
-  // (por exemplo usando Firebase Admin), ou implementar guards no cliente.
-  //
-  // Para não bloquear o fluxo do usuário enquanto uma solução server-side
-  // segura é implementada, apenas permitimos a requisição seguir adiante.
+  // Rotas protegidas simples; ideal: validar ID token Firebase via Admin SDK.
+  const protectedRoutes = ['/favorites', '/matcher'];
+  const needsAuth = protectedRoutes.some(route => pathname.startsWith(route));
+
+  if (needsAuth) {
+    // Heurística: se não houver cookie de sessão/id token, redireciona.
+    const hasAuthCookie = request.cookies.has('firebaseAuthToken') || request.cookies.has('__session');
+    if (!hasAuthCookie) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callback', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
   return NextResponse.next();
 }
 

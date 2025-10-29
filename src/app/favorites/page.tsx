@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { useCollection, useFirestore } from '@/firebase';
 import { collection, query, where, documentId } from 'firebase/firestore';
 import type { CollectionReference } from 'firebase/firestore';
@@ -11,9 +12,10 @@ import { Card } from '@/components/ui/card';
 import { Heart, PawPrint } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { useUser } from '@/firebase/auth/use-user';
 
 export default function FavoritesPage() {
+  const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const { favorites } = useFavorites();
 
@@ -46,6 +48,31 @@ export default function FavoritesPage() {
       ))}
     </div>
   );
+
+  if (userLoading) {
+    return (
+      <div className="container mx-auto py-24 px-4 flex items-center justify-center">
+        <Card className="p-8 bg-card/70 backdrop-blur-sm shadow-lg"><p>Carregando...</p></Card>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto py-24 px-4">
+        <Card className="max-w-xl mx-auto bg-card/70 backdrop-blur-sm shadow-lg">
+          <div className="p-8 space-y-4 text-center">
+            <h1 className="text-3xl font-headline font-bold flex items-center justify-center gap-2"><Heart className="h-10 w-10 text-primary" /> Favoritos</h1>
+            <p className="text-muted-foreground">Entre na sua conta para visualizar e salvar seus animais favoritos.</p>
+            <div className="flex gap-4 justify-center">
+              <Button asChild variant="default"><Link href="/login">Login</Link></Button>
+              <Button asChild variant="outline"><Link href="/register">Registrar</Link></Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">

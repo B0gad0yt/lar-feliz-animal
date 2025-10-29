@@ -1,6 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useFirestore } from '@/firebase';
+import { collection, query, where, documentId, getDocs } from 'firebase/firestore';
 import type { Animal } from '@/lib/types';
 
 interface FavoritesContextType {
@@ -18,6 +20,7 @@ const FAVORITES_KEY = 'lar-feliz-favorites';
 export function FavoritesProvider({ children }: { children: ReactNode }) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const firestore = useFirestore();
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -32,6 +35,37 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     }
     setIsLoaded(true);
   }, []);
+
+  // Remove IDs de animais que não existem mais.
+  const pruneFavorites = useCallback(async () => {
+    if (!firestore || favorites.length === 0) return;
+    try {
+      const chunkSize = 10; // Limite do operador 'in'
+      const existingIds = new Set<string>();
+      for (let i = 0; i < favorites.length; i += chunkSize) {
+        const slice = favorites.slice(i, i + chunkSize);
+        const q = query(collection(firestore, 'animals'), where(documentId(), 'in', slice));
+        const snap = await getDocs(q);
+        snap.forEach(doc => existingIds.add(doc.id));
+      }
+      const orphanIds = favorites.filter(id => !existingIds.has(id));
+      if (orphanIds.length) {
+        setFavorites(prev => prev.filter(id => !orphanIds.includes(id)));
+        // localStorage será atualizado pelo efeito existente.
+      }
+    } catch (error) {
+      console.error('Falha ao podar favoritos órfãos', error);
+    }
+  }, [firestore, favorites]);
+
+  // Executa pruning após carregamento inicial e periodicamente.
+  useEffect(() => {
+    if (isLoaded) {
+      pruneFavorites();
+      const interval = setInterval(pruneFavorites, 5 * 60 * 1000); // 5 minutos
+      return () => clearInterval(interval);
+    }
+  }, [isLoaded, pruneFavorites]);
 
   // Save to localStorage whenever favorites change
   useEffect(() => {

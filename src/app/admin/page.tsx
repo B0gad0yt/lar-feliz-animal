@@ -27,6 +27,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users, Inbox, Check, Ban, HeartHandshake, Activity, TrendingUp } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
+import { useFavorites } from '@/hooks/use-favorites';
 import type { Animal, User as AppUser, Shelter, SiteConfig, AdoptionApplication } from '@/lib/types';
 import {
   AlertDialog,
@@ -425,16 +426,19 @@ function AnimalsTab({ appUser, animals, animalsLoading }: { appUser: AppUser; an
   const firestore = useFirestore();
   const { toast } = useToast();
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const { removeFavorite } = useFavorites();
 
   const handleDelete = () => {
     if (!firestore || !itemToDelete) return;
     
     const docRef = doc(firestore, 'animals', itemToDelete) as DocumentReference<Animal>;
     
-    deleteDoc(docRef).then(() => {
+  deleteDoc(docRef).then(() => {
         toast({
             title: 'Animal excluído com sucesso!',
         });
+    // Remover de favoritos local se presente.
+    removeFavorite(itemToDelete);
     }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: docRef.path,
@@ -555,6 +559,7 @@ function ApplicationsTab({ appUser, applications, applicationsLoading }: { appUs
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [adoptingId, setAdoptingId] = useState<string | null>(null);
+  const { removeFavorite } = useFavorites();
 
   const pendingApplications = applications.filter((item) => item.status === 'pending');
   const acceptedApplications = applications.filter((item) => item.status === 'accepted');
@@ -612,7 +617,8 @@ function ApplicationsTab({ appUser, applications, applicationsLoading }: { appUs
         handledAt: serverTimestamp(),
       });
 
-      await deleteDoc(doc(firestore, 'animals', application.animalId) as DocumentReference<Animal>);
+  await deleteDoc(doc(firestore, 'animals', application.animalId) as DocumentReference<Animal>);
+  removeFavorite(application.animalId);
 
       const related = (applications ?? []).filter(
         (item) => item.animalId === application.animalId && item.id && item.id !== application.id
