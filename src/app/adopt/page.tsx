@@ -138,7 +138,7 @@ export default function AdoptPage() {
           </Reveal>
         </aside>
         <main className="w-full md:w-3/4 lg:w-4/5">
-          <CollapsibleSection title={<span>Resultados ({filteredAnimals.length})</span>} defaultCollapsed forceMount>
+          <CollapsibleSection title={<span>Resultados ({filteredAnimals.length})</span>} defaultCollapsed={false}>
             {animalsLoading ? (
               renderSkeleton()
             ) : filteredAnimals.length > 0 ? (

@@ -10,7 +10,6 @@ import { temperamentOptions } from '@/lib/data';
 import { useUser } from '@/firebase/auth/use-user';
 import { Button } from '@/components/ui/button';
 import { CardHeader } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 
 import { AnimalCard } from '@/components/animal-card';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,26 +26,6 @@ export default function MatcherPage() {
   const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
 
   const [selectedTemperaments, setSelectedTemperaments] = useState<string[]>([]);
-  // Questionário simplificado para ajudar o usuário a definir temperamentos.
-  const [quizStarted, setQuizStarted] = useState(false);
-  const [quizAnswers, setQuizAnswers] = useState<{ energy?: 'quiet' | 'active'; sociability?: 'independent' | 'social'; affection?: 'reserved' | 'affectionate' }>({});
-
-  const mapAnswersToTemperaments = () => {
-    const temps: string[] = [];
-    if (quizAnswers.energy === 'active') temps.push('energetico', 'brincalhao');
-    if (quizAnswers.energy === 'quiet') temps.push('calmo', 'timido');
-    if (quizAnswers.sociability === 'social') temps.push('sociavel', 'amigavel');
-    if (quizAnswers.sociability === 'independent') temps.push('independente', 'esperto');
-    if (quizAnswers.affection === 'affectionate') temps.push('carinhoso', 'amoroso', 'leal');
-    if (quizAnswers.affection === 'reserved') temps.push('inteligente');
-    return Array.from(new Set(temps));
-  };
-
-  const applyQuizToTemperaments = () => {
-    const derived = mapAnswersToTemperaments();
-    setSelectedTemperaments(derived);
-    setQuizStarted(false);
-  };
 
   const handleTemperamentChange = (temperamentId: string) => {
     setSelectedTemperaments(prev =>
@@ -117,50 +96,13 @@ export default function MatcherPage() {
             <Sparkles className="w-8 h-8 md:w-10 md:h-10 ml-4 text-primary" />
         </h1>
         <p className="text-lg text-muted-foreground mt-2 max-w-2xl mx-auto">
-          Responda o questionário ou marque manualmente os temperamentos desejados para ver sugestões.
+          Marque os temperamentos que combinam com a sua rotina e veja animais com perfis compatíveis imediatamente.
         </p>
       </header>
 
       <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">
         <div className="lg:col-span-2 space-y-6">
-          <CollapsibleSection title={<span className="font-headline text-xl">Questionário Rápido</span>} defaultCollapsed className="sticky top-24">
-            {!quizStarted ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Responda 3 perguntas e geraremos uma combinação inicial de temperamentos.</p>
-                <Button size="sm" onClick={() => setQuizStarted(true)}>Começar</Button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div>
-                  <p className="font-medium">Você prefere cães mais quietinhos ou agitados?</p>
-                  <div className="flex gap-3 mt-2">
-                    <Button variant={quizAnswers.energy === 'quiet' ? 'default' : 'outline'} size="sm" onClick={() => setQuizAnswers(a => ({ ...a, energy: 'quiet' }))}>Quietinhos</Button>
-                    <Button variant={quizAnswers.energy === 'active' ? 'default' : 'outline'} size="sm" onClick={() => setQuizAnswers(a => ({ ...a, energy: 'active' }))}>Agitados</Button>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-medium">Você busca um companheiro mais independente ou muito sociável?</p>
-                  <div className="flex gap-3 mt-2">
-                    <Button variant={quizAnswers.sociability === 'independent' ? 'default' : 'outline'} size="sm" onClick={() => setQuizAnswers(a => ({ ...a, sociability: 'independent' }))}>Independente</Button>
-                    <Button variant={quizAnswers.sociability === 'social' ? 'default' : 'outline'} size="sm" onClick={() => setQuizAnswers(a => ({ ...a, sociability: 'social' }))}>Sociável</Button>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-medium">Quanto carinho você espera trocar diariamente?</p>
-                  <div className="flex gap-3 mt-2">
-                    <Button variant={quizAnswers.affection === 'reserved' ? 'default' : 'outline'} size="sm" onClick={() => setQuizAnswers(a => ({ ...a, affection: 'reserved' }))}>Moderado</Button>
-                    <Button variant={quizAnswers.affection === 'affectionate' ? 'default' : 'outline'} size="sm" onClick={() => setQuizAnswers(a => ({ ...a, affection: 'affectionate' }))}>Muito carinho</Button>
-                  </div>
-                </div>
-                <Separator />
-                <div className="flex gap-3">
-                  <Button size="sm" onClick={applyQuizToTemperaments} disabled={!quizAnswers.energy || !quizAnswers.sociability || !quizAnswers.affection}>Gerar Temperamentos</Button>
-                  <Button size="sm" variant="outline" onClick={() => { setQuizStarted(false); setQuizAnswers({}); }}>Cancelar</Button>
-                </div>
-              </div>
-            )}
-          </CollapsibleSection>
-          <CollapsibleSection title={<span className="font-headline text-2xl">Temperamento Desejado</span>} defaultCollapsed className="sticky top-[24rem]">
+          <CollapsibleSection title={<span className="font-headline text-2xl">Temperamento Desejado</span>} defaultCollapsed className="sticky top-24">
             <div className="grid grid-cols-2 gap-4">
               {temperamentOptions.map((item) => (
                 <div key={item.id} className="flex items-center space-x-2">
@@ -183,13 +125,12 @@ export default function MatcherPage() {
         <div className="lg:col-span-3">
           <CollapsibleSection
             title={<span className="font-headline text-2xl">Resultados ({matches.length})</span>}
-            defaultCollapsed
-            forceMount
+            defaultCollapsed={false}
           >
             {animalsLoading ? (
               renderSkeleton()
             ) : matches.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in-50 duration-500">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {matches.map((animal) => (
                   <AnimalCard key={animal.id} animal={animal} />
                 ))}
