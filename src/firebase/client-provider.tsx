@@ -1,10 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import type { FirebaseApp } from 'firebase/app';
-import type { Auth } from 'firebase/auth';
-import type { Firestore } from 'firebase/firestore';
 import { initializeFirebase } from './';
 import { FirebaseProvider } from './provider';
+import { syncUserSession } from '@/lib/client-auth-session';
 
 // NOTE: This is a client-only provider that will not be rendered on the server
 export function FirebaseClientProvider({
@@ -12,11 +10,7 @@ export function FirebaseClientProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [firebaseInstances, setFirebaseInstances] = useState<{
-    firebaseApp: FirebaseApp;
-    firestore: Firestore;
-    auth: Auth;
-  } | null>(null);
+  const [firebaseInstances, setFirebaseInstances] = useState<ReturnType<typeof initializeFirebase> | null>(null);
 
   useEffect(() => {
     // Initialize Firebase only on the client side
@@ -24,7 +18,23 @@ export function FirebaseClientProvider({
     setFirebaseInstances(instances);
   }, []);
 
-  if (!firebaseInstances) {
+  useEffect(() => {
+    if (!firebaseInstances?.auth) {
+      return;
+    }
+
+    const unsubscribe = firebaseInstances.auth.onIdTokenChanged((user) => {
+      void syncUserSession(user);
+    });
+
+    return () => unsubscribe();
+  }, [firebaseInstances?.auth]);
+
+  if (
+    !firebaseInstances?.firebaseApp ||
+    !firebaseInstances?.firestore ||
+    !firebaseInstances?.auth
+  ) {
     // You can render a loading state here if needed
     return null;
   }

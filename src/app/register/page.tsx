@@ -13,7 +13,7 @@ import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import type { User as AppUser } from '@/lib/types';
+import { syncUserSession } from '@/lib/client-auth-session';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -120,7 +120,8 @@ export default function RegisterPage() {
       });
       setShowVerificationAlert(true);
       // Usuário é criado no Firebase Auth mas sem userDoc; aguarda verificação antes de persistir via login.
-      await auth.signOut().catch(() => {});
+  await auth.signOut().catch(() => {});
+  await syncUserSession(null);
       setTimeout(() => router.push('/login'), 5000);
     } catch (error: any) {
       console.error(error);

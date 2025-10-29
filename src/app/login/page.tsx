@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User as AppUser } from '@/lib/types';
+import { syncUserSession } from '@/lib/client-auth-session';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -205,11 +206,13 @@ export default function LoginPage() {
             description: getAuthErrorMessage(verificationError, 'Tente novamente em alguns instantes.'),
           });
         } finally {
+          await syncUserSession(null);
           await auth.signOut();
         }
         return;
       }
 
+      await syncUserSession(credential.user);
       toast({ title: 'Login realizado com sucesso!' });
       router.push('/');
     } catch (error: any) {
@@ -249,6 +252,7 @@ export default function LoginPage() {
         });
       }
     }
+    await syncUserSession(user);
     toast({ title: 'Login com Google realizado com sucesso!' });
     router.push('/');
   };

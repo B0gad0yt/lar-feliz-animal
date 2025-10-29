@@ -26,7 +26,6 @@ Uma plataforma moderna e completa para conectar pessoas com animais disponíveis
 ### 🚀 Recursos Técnicos
 - **PWA (Progressive Web App)**: Instalável em dispositivos móveis
 - **SEO Otimizado**: Meta tags, Open Graph, sitemap dinâmico
-- **Google Analytics**: Rastreamento de métricas e comportamento
 - **Acessibilidade**: ARIA labels, navegação por teclado, contraste otimizado
 - **Responsivo**: Design adaptável para todos os dispositivos
 - **Dark Mode**: Tema claro/escuro automático
@@ -58,7 +57,7 @@ Uma plataforma moderna e completa para conectar pessoas com animais disponíveis
 
 - Node.js 18+ 
 - npm ou yarn
-- Conta Firebase (com Firestore habilitado)
+- Conta Firebase (com Firestore, authentication habilitado)
 - Conta hCaptcha (opcional, para formulários)
 - Conta Google Analytics (opcional, para analytics)
 
@@ -184,11 +183,6 @@ Contribuições são bem-vindas! Por favor:
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
-
-## 📞 Contato
-
-- **Email**: contato@larfelizanimal.com
-- **Website**: [https://larfelizanimal.com](https://larfelizanimal.com)
 
 ## 🙏 Agradecimentos
 

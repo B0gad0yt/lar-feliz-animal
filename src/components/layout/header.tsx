@@ -17,6 +17,7 @@ import { doc } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import type { User as AppUser, SiteConfig } from '@/lib/types';
 import { SimpleAvatar } from '@/components/ui/simple-avatar';
+import { syncUserSession } from '@/lib/client-auth-session';
 
 
 import {
@@ -54,8 +55,12 @@ export function Header() {
   
   const isAdmin = appUser?.role === 'operator' || appUser?.role === 'shelterAdmin';
 
-  const handleSignOut = () => {
-    signOut(auth);
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } finally {
+      await syncUserSession(null);
+    }
   };
 
   const NavLink = ({ href, label, icon: Icon, className }: { href: string; label: string; icon?: React.ComponentType<any>; className?: string }) => {
@@ -129,7 +134,7 @@ export function Header() {
                 </Link>
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={handleSignOut}>
+            <DropdownMenuItem onClick={() => { void handleSignOut(); }}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair</span>
             </DropdownMenuItem>
@@ -203,7 +208,7 @@ export function Header() {
                        />
                        <div>
                          <p className="font-semibold">{user.displayName}</p>
-                         <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => { handleSignOut(); setSheetOpen(false); }}>Sair</Button>
+                         <Button variant="link" className="p-0 h-auto text-muted-foreground" onClick={() => { void handleSignOut(); setSheetOpen(false); }}>Sair</Button>
                        </div>
                      </div>
                   ) : (
