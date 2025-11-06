@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -16,9 +17,10 @@ import type { DocumentReference } from 'firebase/firestore';
 import type { Animal, Shelter } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function AnimalProfilePage({ params }: { params: { id: string } }) {
+export default function AnimalProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const firestore = useFirestore();
-  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', params.id) as DocumentReference<Animal>) : null), [firestore, params.id]);
+  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', id) as DocumentReference<Animal>) : null), [firestore, id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
   
   const shelterRef = useMemo(() => (firestore && animal ? (doc(firestore, 'shelters', animal.shelterId) as DocumentReference<Shelter>) : null), [firestore, animal]);

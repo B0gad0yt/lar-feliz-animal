@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { use, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,13 +29,14 @@ const shelterSchema = z.object({
 });
 
 
-export default function EditShelterPage({ params }: { params: { id: string } }) {
+export default function EditShelterPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   
-  const shelterRef = useMemo(() => (firestore ? (doc(firestore, 'shelters', params.id) as DocumentReference<Shelter>) : null), [firestore, params.id]);
+  const shelterRef = useMemo(() => (firestore ? (doc(firestore, 'shelters', id) as DocumentReference<Shelter>) : null), [firestore, id]);
   const { data: shelter, loading: shelterLoading } = useDoc<Shelter>(shelterRef);
 
   const form = useForm<z.infer<typeof shelterSchema>>({

@@ -1,18 +1,18 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirestore, useUser, useDoc } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
-import type { CollectionReference, DocumentReference } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { CollectionReference } from 'firebase/firestore';
 import { temperamentOptions } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
-import { useRef, useMemo, useEffect } from 'react';
-import type { Animal, User as AppUser } from '@/lib/types';
+import { useEffect, useRef, useState } from 'react';
+import type { Animal } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash, ArrowLeft, Upload, X } from 'lucide-react';
 
@@ -39,6 +40,8 @@ const animalSchema = z.object({
   shelterId: z.string().min(1, 'ID do abrigo é obrigatório.'),
 });
 
+type FormMode = 'adoption' | 'temporary';
+
 
 export default function NewAnimalPage() {
   const router = useRouter();
@@ -46,18 +49,35 @@ export default function NewAnimalPage() {
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<FormMode>(
+    () => (searchParams?.get('mode') === 'temporary' ? 'temporary' : 'adoption')
+  );
 
-  const userDocRef = useMemo(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
-  }, [firestore, user]);
-  const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
+  useEffect(() => {
+    const paramMode = searchParams?.get('mode') === 'temporary' ? 'temporary' : 'adoption';
+    setMode(paramMode);
+  }, [searchParams]);
+
+  const handleModeChange = (value: string) => {
+    const nextMode: FormMode = value === 'temporary' ? 'temporary' : 'adoption';
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    if (nextMode === 'adoption') {
+      params.delete('mode');
+    } else {
+      params.set('mode', 'temporary');
+    }
+    const query = params.toString();
+    router.replace(`/admin/animals/new${query ? `?${query}` : ''}`, { scroll: false });
+  };
 
   const form = useForm<z.infer<typeof animalSchema>>({
     resolver: zodResolver(animalSchema),
     defaultValues: {
       name: '',
-      species: appUser?.role === 'shelterAdmin' ? 'Cachorro' : undefined,
+      species: undefined,
       breed: '',
       age: 0,
       description: '',
@@ -69,12 +89,6 @@ export default function NewAnimalPage() {
     },
   });
 
-  useEffect(() => {
-    if (appUser?.role === 'shelterAdmin') {
-      form.setValue('species', 'Cachorro');
-    }
-  }, [appUser, form]);
-
 
   const { fields: healthFields, append: appendHealth, remove: removeHealth } = useFieldArray({
     control: form.control as any,
@@ -85,6 +99,13 @@ export default function NewAnimalPage() {
     name: 'photos',
   });
   const photos = form.watch('photos');
+  const dashboardHref = `/admin?tab=${mode === 'temporary' ? 'temporary' : 'animals'}`;
+  const submitButtonLabel = mode === 'temporary' ? 'Salvar Animal Temporário' : 'Salvar Novo Animal';
+  const cardTitle = mode === 'temporary' ? 'Cadastrar Lar Temporário' : 'Adicionar Novo Animal';
+  const cardDescription =
+    mode === 'temporary'
+      ? 'Cadastre um animal elegível para acolhimento temporário.'
+      : 'Preencha as informações do novo animal disponível para adoção.';
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -115,28 +136,32 @@ export default function NewAnimalPage() {
 
   const onSubmit = (values: z.infer<typeof animalSchema>) => {
     if (!firestore || !user) return;
-    const collectionRef = collection(firestore, 'animals') as CollectionReference<Animal>;
-    
+    const collectionName = mode === 'temporary' ? 'temporaryAnimals' : 'animals';
+    const collectionRef = collection(firestore, collectionName) as CollectionReference<Animal>;
+
     addDoc(collectionRef, {
-        ...values,
-        createdBy: user.uid, // Add creator's UID
-        createdAt: serverTimestamp(),
-    }).then(() => {
+      ...values,
+      createdBy: user.uid,
+      createdAt: serverTimestamp(),
+    })
+      .then(() => {
         toast({
-            title: 'Animal adicionado com sucesso!',
+          title: mode === 'temporary' ? 'Cadastro de lar temporário criado!' : 'Animal adicionado com sucesso!',
         });
-        router.push('/admin');
-    }).catch(async (serverError) => {
+        const targetTab = mode === 'temporary' ? 'temporary' : 'animals';
+        router.push(`/admin?tab=${targetTab}`);
+      })
+      .catch(async () => {
         const permissionError = new FirestorePermissionError({
-            path: collectionRef.path,
-            operation: 'create',
-            requestResourceData: values,
+          path: collectionRef.path,
+          operation: 'create',
+          requestResourceData: values,
         });
         errorEmitter.emit('permission-error', permissionError);
-    });
+      });
   };
   
-  if (userLoading || appUserLoading) {
+  if (userLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
   
@@ -148,20 +173,24 @@ export default function NewAnimalPage() {
 
   return (
     <div className="container mx-auto max-w-3xl py-12 px-4">
-       <div className="mb-8">
-        <Button variant="outline" size="sm" onClick={() => router.push('/admin')}>
+      <div className="mb-8">
+        <Button variant="outline" size="sm" onClick={() => router.push(dashboardHref)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar para o painel
         </Button>
       </div>
       <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl md:text-4xl font-headline">Adicionar Novo Animal</CardTitle>
-          <CardDescription>
-            Preencha as informações do novo animal para adoção.
-          </CardDescription>
+          <CardTitle className="text-3xl md:text-4xl font-headline">{cardTitle}</CardTitle>
+          <CardDescription>{cardDescription}</CardDescription>
         </CardHeader>
         <CardContent>
+          <Tabs value={mode} onValueChange={handleModeChange} className="mb-6">
+            <TabsList className="grid grid-cols-2">
+              <TabsTrigger value="adoption">Adoção</TabsTrigger>
+              <TabsTrigger value="temporary">Lar temporário</TabsTrigger>
+            </TabsList>
+          </Tabs>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               
@@ -294,7 +323,7 @@ export default function NewAnimalPage() {
 
 
               <Button type="submit" size="lg" className="w-full" disabled={form.formState.isSubmitting}>
-                <Save className="mr-2 h-5 w-5" /> {form.formState.isSubmitting ? 'Salvando...' : 'Salvar Novo Animal'}
+                <Save className="mr-2 h-5 w-5" /> {form.formState.isSubmitting ? 'Salvando...' : submitButtonLabel}
               </Button>
             </form>
           </Form>

@@ -9,7 +9,7 @@
         "email": { "type": "string", "format": "email", "description": "The user's email address." },
         "displayName": { "type": "string", "description": "The user's display name." },
         "photoURL": { "type": "string", "description": "The URL of the user's profile picture." },
-        "role": { "type": "string", "enum": ["user", "operator", "shelterAdmin"], "description": "The user's role." }
+        "role": { "type": "string", "enum": ["user", "operator"], "description": "The user's role." }
       },
       "required": ["uid", "email", "role"]
     },
@@ -76,7 +76,6 @@
         "animalName": { "type": "string" },
         "animalPhoto": { "type": "string" },
         "shelterId": { "type": "string" },
-        "shelterAdminId": { "type": "string" },
         "applicantId": { "type": "string" },
         "fullName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
@@ -86,11 +85,35 @@
         "hasOtherPets": { "type": "string" },
         "reason": { "type": "string" },
         "agreement": { "type": "boolean" },
-  "hcaptchaToken": { "type": "string" },
+        "hcaptchaToken": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "accepted", "adopted"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-  "required": ["animalId", "shelterId", "shelterAdminId", "applicantId", "fullName", "email", "status", "hcaptchaToken"]
+      "required": ["animalId", "shelterId", "applicantId", "fullName", "email", "status", "hcaptchaToken"]
+  },
+    "fosterApplication": {
+      "title": "Foster Application",
+      "description": "A request submitted by a user to host an animal temporarily.",
+      "type": "object",
+      "properties": {
+        "animalId": { "type": "string" },
+        "animalName": { "type": "string" },
+        "animalPhoto": { "type": "string" },
+        "shelterId": { "type": "string" },
+        "applicantId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "residenceType": { "type": "string", "enum": ["Casa", "Apartamento"] },
+        "hasOtherPets": { "type": "string" },
+        "reason": { "type": "string" },
+        "agreement": { "type": "boolean" },
+        "hcaptchaToken": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["animalId", "shelterId", "applicantId", "fullName", "email", "status", "hcaptchaToken"]
     }
   },
   "auth": {
@@ -105,6 +128,10 @@
       "schema": { "$ref": "#/entities/animal" },
       "description": "Stores information about animals available for adoption."
     },
+    "/temporaryAnimals/{animalId}": {
+      "schema": { "$ref": "#/entities/animal" },
+      "description": "Stores information about animals available for temporary fostering."
+    },
     "/shelters/{shelterId}": {
         "schema": { "$ref": "#/entities/shelter" },
         "description": "Stores information about partner shelters."
@@ -116,6 +143,10 @@
     "/adoptionApplications/{applicationId}": {
       "schema": { "$ref": "#/entities/adoptionApplication" },
       "description": "Stores adoption requests submitted by users."
+    },
+    "/fosterApplications/{applicationId}": {
+      "schema": { "$ref": "#/entities/fosterApplication" },
+      "description": "Stores temporary foster requests submitted by users."
     }
   }
 }

@@ -178,7 +178,7 @@ export default function ProfilePage() {
               <Shield className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Papel</p>
-                <p className="font-medium">{appUser?.role === 'operator' ? 'Operador' : appUser?.role === 'shelterAdmin' ? 'Admin (abrigo)' : 'Usuário'}</p>
+                <p className="font-medium">{appUser?.role === 'operator' ? 'Operador' : 'Usuário'}</p>
               </div>
             </div>
           </CardContent>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCollection, useDoc } from '@/firebase';
-import { collection, doc, deleteDoc, setDoc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, deleteDoc, setDoc, updateDoc, serverTimestamp, addDoc, getDoc } from 'firebase/firestore';
 import type { CollectionReference, DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Link from 'next/link';
@@ -24,11 +24,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
-import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users, Inbox, Check, Ban, HeartHandshake, Activity, TrendingUp } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Edit, Settings, Home, Bone, ShieldAlert, ArrowLeft, Save, Globe, Users, Inbox, Check, Ban, HeartHandshake, Activity, TrendingUp, HandHeart } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
 import { useFavorites } from '@/hooks/use-favorites';
-import type { Animal, User as AppUser, Shelter, SiteConfig, AdoptionApplication } from '@/lib/types';
+import type { Animal, User as AppUser, Shelter, SiteConfig, AdoptionApplication, TemporaryAnimal, FosterApplication } from '@/lib/types';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -98,9 +98,15 @@ type DashboardOverviewProps = {
   animalsLoading: boolean;
   applications?: AdoptionApplication[] | null;
   applicationsLoading: boolean;
+  temporaryAnimals?: TemporaryAnimal[] | null;
+  temporaryAnimalsLoading: boolean;
+  fosterApplications?: FosterApplication[] | null;
+  fosterApplicationsLoading: boolean;
   shelters?: Shelter[] | null;
   sheltersLoading: boolean;
 };
+
+type AdminTabValue = 'animals' | 'temporary' | 'applications' | 'shelters' | 'users' | 'settings';
 
 function DashboardOverview({
   appUser,
@@ -108,6 +114,10 @@ function DashboardOverview({
   animalsLoading,
   applications,
   applicationsLoading,
+  temporaryAnimals,
+  temporaryAnimalsLoading,
+  fosterApplications,
+  fosterApplicationsLoading,
   shelters,
   sheltersLoading,
 }: DashboardOverviewProps) {
@@ -117,6 +127,10 @@ function DashboardOverview({
   const acceptedApplications = (applications ?? []).filter((item) => item.status === 'accepted');
   const adoptedApplications = (applications ?? []).filter((item) => item.status === 'adopted');
   const adoptionRate = totalApplications ? Math.round((adoptedApplications.length / totalApplications) * 100) : 0;
+
+  const totalTemporaryAnimals = temporaryAnimals?.length ?? 0;
+  const fosterPendingApplications = (fosterApplications ?? []).filter((item) => item.status === 'pending');
+  const fosterApprovedApplications = (fosterApplications ?? []).filter((item) => item.status === 'approved');
 
   const respondedApplications = (applications ?? []).filter((item) => item.handledAt && item.createdAt);
   const responseTotals = respondedApplications.reduce(
@@ -160,6 +174,7 @@ function DashboardOverview({
 
   const sheltersWithPending = new Set(pendingApplications.map((item) => item.shelterId)).size;
   const overviewLoading = animalsLoading || applicationsLoading;
+  const fosterOverviewLoading = temporaryAnimalsLoading || fosterApplicationsLoading;
 
   const formatNumber = (value: number) => value.toLocaleString('pt-BR');
 
@@ -195,6 +210,19 @@ function DashboardOverview({
       icon: Activity,
     },
   ];
+
+  summaryCards.push({
+    label: 'Lar temporário ativos',
+    value: temporaryAnimalsLoading ? '—' : formatNumber(totalTemporaryAnimals),
+    helper: fosterOverviewLoading
+      ? 'Consolidando pedidos...'
+      : fosterPendingApplications.length
+        ? `${fosterPendingApplications.length} pedidos pendentes`
+        : fosterApprovedApplications.length
+          ? `${fosterApprovedApplications.length} aprovados aguardando`
+          : 'Nenhuma solicitação ativa',
+    icon: HandHeart,
+  });
 
   if (appUser.role === 'operator') {
     const sheltersCount = shelters?.length ?? 0;
@@ -289,29 +317,29 @@ function DashboardOverview({
 
   return (
     <section className="space-y-6 mb-10">
-      <div className="rounded-3xl border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 md:p-8 shadow-inner">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
+      <div className="rounded-3xl border bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 md:p-6 lg:p-8 shadow-inner">
+        <div className="flex flex-col gap-4 md:gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary/60">Visão Geral</p>
-            <h2 className="mt-2 text-3xl font-headline font-semibold">
+            <h2 className="mt-2 text-2xl md:text-3xl font-headline font-semibold">
               Olá, {appUser.displayName || 'time'} 👋
             </h2>
-            <p className="mt-3 max-w-2xl text-base text-muted-foreground">{highlightCopy}</p>
+            <p className="mt-2 md:mt-3 max-w-2xl text-sm md:text-base text-muted-foreground">{highlightCopy}</p>
           </div>
-          <div className="flex w-full flex-col gap-4 rounded-2xl border border-white/40 bg-white/80 p-4 text-right shadow-sm backdrop-blur dark:border-primary/30 dark:bg-[#2d1a3f] dark:text-white md:w-auto md:flex-row md:items-center md:text-left">
+          <div className="flex w-full flex-col gap-3 md:gap-4 rounded-2xl border border-white/40 bg-white/80 p-3 md:p-4 text-left shadow-sm backdrop-blur dark:border-primary/30 dark:bg-[#2d1a3f] dark:text-white lg:w-auto lg:flex-row lg:items-center">
             <div>
               <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <TrendingUp className="h-4 w-4 text-primary" /> Conversão
               </p>
-              <p className="text-3xl font-bold">{overviewLoading ? '—' : `${adoptionRate}%`}</p>
+              <p className="text-2xl md:text-3xl font-bold">{overviewLoading ? '—' : `${adoptionRate}%`}</p>
               <p className="text-xs text-muted-foreground">
                 {overviewLoading ? 'Consolidando histórico...' : `${acceptedApplications.length} aprovações recentes`}
               </p>
             </div>
-            <div className="h-10 w-px bg-border hidden md:block" aria-hidden />
+            <div className="h-px w-full bg-border lg:h-10 lg:w-px" aria-hidden />
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fila pendente</p>
-              <p className="text-3xl font-bold">{overviewLoading ? '—' : pendingApplications.length.toLocaleString('pt-BR')}</p>
+              <p className="text-2xl md:text-3xl font-bold">{overviewLoading ? '—' : pendingApplications.length.toLocaleString('pt-BR')}</p>
               <p className="text-xs text-muted-foreground">
                 {overviewLoading ? 'Carregando...' : 'Prontos para análise'}
               </p>
@@ -320,7 +348,7 @@ function DashboardOverview({
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
           <Card key={card.label} className="border border-border/60 bg-card/80 shadow-sm">
             <CardContent className="flex items-start gap-4 p-6">
@@ -337,12 +365,12 @@ function DashboardOverview({
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-3">
         <Card className="lg:col-span-2 border border-border/60 bg-card/80 shadow-sm">
-          <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between pb-4">
             <div>
-              <CardTitle>Fluxo de pedidos</CardTitle>
-              <CardDescription>Quantidade mensal por status (últimos 6 meses)</CardDescription>
+              <CardTitle className="text-lg md:text-xl">Fluxo de pedidos</CardTitle>
+              <CardDescription className="text-xs md:text-sm">Quantidade mensal por status (últimos 6 meses)</CardDescription>
             </div>
             <Badge variant="secondary" className="w-fit">
               {overviewLoading ? '—' : `${totalApplications} pedidos`}
@@ -350,11 +378,11 @@ function DashboardOverview({
           </CardHeader>
           <CardContent>
             {applicationsLoading ? (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[240px] md:h-[280px] items-center justify-center text-sm text-muted-foreground">
                 Carregando dados em tempo real...
               </div>
             ) : hasTrendData ? (
-              <ChartContainer config={ADOPTION_CHART_CONFIG} className="h-[300px]">
+              <ChartContainer config={ADOPTION_CHART_CONFIG} className="h-[240px] md:h-[300px] w-full">
                 <BarChart data={adoptionTrend} barCategoryGap={16}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/60" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tickMargin={10} className="text-xs" />
@@ -365,7 +393,7 @@ function DashboardOverview({
                 </BarChart>
               </ChartContainer>
             ) : (
-              <div className="flex h-[280px] flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+              <div className="flex h-[240px] md:h-[280px] flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground px-4">
                 <p>Aguardando histórico suficiente para desenhar o gráfico.</p>
                 <p className="text-xs">Responda a mais pedidos para desbloquear esta visualização.</p>
               </div>
@@ -374,19 +402,19 @@ function DashboardOverview({
         </Card>
 
         <Card className="border border-border/60 bg-card/80 shadow-sm">
-          <CardHeader>
-            <CardTitle>Composição do catálogo</CardTitle>
-            <CardDescription>Distribuição por espécie disponível hoje</CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg md:text-xl">Composição do catálogo</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Distribuição por espécie disponível hoje</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {animalsLoading ? (
-              <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[200px] md:h-[240px] items-center justify-center text-sm text-muted-foreground">
                 Atualizando inventário...
               </div>
             ) : speciesDistribution.length ? (
-              <ChartContainer config={speciesChartConfig} className="mx-auto h-[240px] max-w-[260px]">
+              <ChartContainer config={speciesChartConfig} className="mx-auto h-[200px] md:h-[240px] max-w-[220px] md:max-w-[260px]">
                 <PieChart>
-                  <Pie data={speciesDistribution} dataKey="value" nameKey="species" innerRadius={60} strokeWidth={8}>
+                  <Pie data={speciesDistribution} dataKey="value" nameKey="species" innerRadius={50} outerRadius={80} strokeWidth={8}>
                     {speciesDistribution.map((entry) => (
                       <Cell key={entry.species} fill={entry.fill} />
                     ))}
@@ -395,7 +423,7 @@ function DashboardOverview({
                 </PieChart>
               </ChartContainer>
             ) : (
-              <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[200px] md:h-[240px] items-center justify-center text-sm text-muted-foreground px-4 text-center">
                 Cadastre um animal para visualizar a distribuição.
               </div>
             )}
@@ -553,7 +581,139 @@ function AnimalsTab({ appUser, animals, animalsLoading }: { appUser: AppUser; an
   )
 }
 
-function ApplicationsTab({ appUser, applications, applicationsLoading }: { appUser: AppUser; applications: AdoptionApplication[]; applicationsLoading: boolean }) {
+function TemporaryAnimalsTab({ animals, animalsLoading }: { animals: TemporaryAnimal[]; animalsLoading: boolean }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const { removeFavorite } = useFavorites();
+
+  const handleDelete = () => {
+    if (!firestore || !itemToDelete) return;
+
+    const docRef = doc(firestore, 'temporaryAnimals', itemToDelete) as DocumentReference<TemporaryAnimal>;
+
+    deleteDoc(docRef)
+      .then(() => {
+        toast({
+          title: 'Cadastro de lar temporário excluído!',
+        });
+        removeFavorite(itemToDelete);
+      })
+      .catch(async () => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setItemToDelete(null);
+      });
+  };
+
+  if (animalsLoading) {
+    return <div className="text-center p-8">Carregando cadastros de lar temporário...</div>;
+  }
+
+  return (
+    <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
+      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <CardTitle>Lar Temporário</CardTitle>
+          <CardDescription>Gerencie animais disponíveis para acolhimento temporário.</CardDescription>
+        </div>
+        <Button asChild className="w-full md:w-auto">
+          <Link href="/admin/animals/new?mode=temporary">
+            <PlusCircle className="mr-2 h-5 w-5" /> Novo cadastro
+          </Link>
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="hidden w-[100px] sm:table-cell">
+                  <span className="sr-only">Imagem</span>
+                </TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Espécie</TableHead>
+                <TableHead className="hidden md:table-cell">Idade</TableHead>
+                <TableHead>
+                  <span className="sr-only">Ações</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {animals.length ? (
+                animals.map((animal) => (
+                  <TableRow key={animal.id}>
+                    <TableCell className="hidden sm:table-cell">
+                      {animal.photos[0] && (
+                        <Image
+                          alt={animal.name}
+                          className="aspect-square rounded-md object-cover"
+                          height="64"
+                          src={animal.photos[0]}
+                          width="64"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{animal.name}</TableCell>
+                    <TableCell>{animal.species}</TableCell>
+                    <TableCell className="hidden md:table-cell">{animal.age} {animal.age > 1 ? 'anos' : 'ano'}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/animals/edit/${animal.id}?mode=temporary`} className="cursor-pointer">
+                              <Edit className="mr-2 h-4 w-4" />Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive cursor-pointer" onSelect={() => setItemToDelete(animal.id as string)}>
+                            <Trash className="mr-2 h-4 w-4" />Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    Nenhum animal cadastrado para lar temporário ainda.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cadastro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação removerá o animal da fila de lar temporário imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
+
+function AdoptionApplicationsPanel({ appUser, applications, applicationsLoading }: { appUser: AppUser; applications: AdoptionApplication[]; applicationsLoading: boolean }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -786,10 +946,295 @@ function ApplicationsTab({ appUser, applications, applicationsLoading }: { appUs
   );
 }
 
+function FosterApplicationsPanel({ appUser, applications, applicationsLoading }: { appUser: AppUser; applications: FosterApplication[]; applicationsLoading: boolean }) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
+
+  const pendingApplications = applications.filter((item) => item.status === 'pending');
+  const approvedApplications = applications.filter((item) => item.status === 'approved');
+
+  const handleStatusChange = async (application: FosterApplication, status: 'pending' | 'approved') => {
+    if (!firestore || !application.id) return;
+    setProcessingId(application.id);
+    try {
+      const applicationRef = doc(firestore, 'fosterApplications', application.id) as DocumentReference<FosterApplication>;
+      await updateDoc(applicationRef, {
+        status,
+        handledBy: appUser.uid,
+        handledAt: serverTimestamp(),
+      });
+      toast({ title: status === 'approved' ? 'Pedido aprovado!' : 'Pedido atualizado!' });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao atualizar pedido',
+        description: error?.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleComplete = async (application: FosterApplication) => {
+    if (!firestore || !application.id || !application.animalId) return;
+    setCompletingId(application.id);
+    try {
+      // 1. Get the temporary animal data
+      const tempAnimalRef = doc(firestore, 'temporaryAnimals', application.animalId) as DocumentReference<TemporaryAnimal>;
+      const tempAnimalSnap = await getDoc(tempAnimalRef);
+      
+      if (!tempAnimalSnap.exists()) {
+        throw new Error('Animal temporário não encontrado');
+      }
+      
+      const tempAnimalData = tempAnimalSnap.data();
+      
+      // 2. Move animal to adoption collection
+      const animalsRef = collection(firestore, 'animals') as CollectionReference<Animal>;
+      await addDoc(animalsRef, {
+        ...tempAnimalData,
+        movedFromTemporary: true,
+        originalTemporaryId: application.animalId,
+        movedAt: serverTimestamp(),
+      });
+      
+      // 3. Delete from temporary collection
+      await deleteDoc(tempAnimalRef);
+      
+      // 4. Update foster application status
+      const applicationRef = doc(firestore, 'fosterApplications', application.id) as DocumentReference<FosterApplication>;
+      await updateDoc(applicationRef, {
+        status: 'completed',
+        handledBy: appUser.uid,
+        handledAt: serverTimestamp(),
+        animalMovedToAdoption: true,
+      });
+      
+      toast({ 
+        title: 'Lar temporário concluído!',
+        description: `${application.animalName} foi movido para adoção. Obrigado ${application.fullName}!`
+      });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao concluir',
+        description: error?.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
+  const handleDeleteApplication = async (application: FosterApplication) => {
+    if (!firestore || !application.id) return;
+    setRemovingId(application.id);
+    try {
+      await deleteDoc(doc(firestore, 'fosterApplications', application.id) as DocumentReference<FosterApplication>);
+      toast({ title: 'Pedido removido.' });
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao remover pedido',
+        description: error?.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  const renderApplicationCard = (application: FosterApplication, variant: 'pending' | 'approved') => {
+    const submittedAt = application.createdAt?.toDate ? application.createdAt.toDate().toLocaleString('pt-BR') : '—';
+
+    return (
+      <div key={application.id} className="border rounded-lg p-4 bg-background/60">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">#{application.id?.slice(0, 6)}</Badge>
+              <Badge>{application.animalName}</Badge>
+              <Badge variant="secondary">Lar temporário</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">Enviado em {submittedAt}</p>
+            <p className="mt-3 text-base font-semibold">{application.fullName}</p>
+            <p className="text-sm text-muted-foreground">{application.email} · {application.phone}</p>
+          </div>
+          {application.animalPhoto && (
+            <div className="relative h-20 w-20 rounded-md overflow-hidden">
+              <Image
+                src={application.animalPhoto}
+                alt={application.animalName}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mt-4">
+          <div>
+            <span className="font-semibold">Endereço: </span>
+            {application.address}
+          </div>
+          <div>
+            <span className="font-semibold">Residência: </span>
+            {application.residenceType}
+          </div>
+          <div>
+            <span className="font-semibold">Outros animais: </span>
+            {application.hasOtherPets || 'Não informado'}
+          </div>
+          <div>
+            <span className="font-semibold">Disponibilidade: </span>
+            {application.availability || 'Não informado'}
+          </div>
+          <div className="md:col-span-2">
+            <span className="font-semibold">Experiência: </span>
+            {application.experience || 'Não informado'}
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {variant === 'pending' && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => handleStatusChange(application, 'approved')}
+                disabled={processingId === application.id}
+              >
+                <Check className="mr-2 h-4 w-4" /> Aprovar
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleDeleteApplication(application)}
+                disabled={removingId === application.id}
+              >
+                <Ban className="mr-2 h-4 w-4" /> Remover
+              </Button>
+            </>
+          )}
+          {variant === 'approved' && (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleDeleteApplication(application)}
+                disabled={removingId === application.id}
+              >
+                <Ban className="mr-2 h-4 w-4" /> Remover
+              </Button>
+              <Button
+                size="sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => handleComplete(application)}
+                disabled={completingId === application.id}
+              >
+                <HandHeart className="mr-2 h-4 w-4" /> Concluir
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (applicationsLoading) {
+    return <div className="text-center p-8">Carregando pedidos de lar temporário...</div>;
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card className="bg-card/70 backdrop-blur-sm border border-primary/10">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <Inbox className="h-4 w-4 text-primary" /> Pendentes
+            </div>
+            <CardDescription>Pedidos aguardando aprovação</CardDescription>
+          </div>
+          <Badge variant="secondary">{pendingApplications.length}</Badge>
+        </CardHeader>
+        <CardContent>
+          {pendingApplications.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum pedido pendente no momento.</p>
+          ) : (
+            <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-2">
+              {pendingApplications.map((application) => renderApplicationCard(application, 'pending'))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card/70 backdrop-blur-sm border border-primary/10">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <Check className="h-4 w-4 text-primary" /> Aprovados
+            </div>
+            <CardDescription>Organize entregas e monitoramento</CardDescription>
+          </div>
+          <Badge variant="secondary">{approvedApplications.length}</Badge>
+        </CardHeader>
+        <CardContent>
+          {approvedApplications.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum pedido aprovado ainda.</p>
+          ) : (
+            <div className="space-y-4 max-h-[28rem] overflow-y-auto pr-2">
+              {approvedApplications.map((application) => renderApplicationCard(application, 'approved'))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ApplicationsTab({
+  appUser,
+  applications,
+  applicationsLoading,
+  fosterApplications,
+  fosterApplicationsLoading,
+}: {
+  appUser: AppUser;
+  applications: AdoptionApplication[];
+  applicationsLoading: boolean;
+  fosterApplications: FosterApplication[];
+  fosterApplicationsLoading: boolean;
+}) {
+  const [activeView, setActiveView] = useState<'adoption' | 'temporary'>('adoption');
+
+  return (
+    <div className="space-y-6">
+      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'adoption' | 'temporary')}>
+        <TabsList className="flex w-full flex-wrap justify-start gap-2 rounded-full bg-muted/40 p-1">
+          <TabsTrigger value="adoption" className="rounded-full px-4 py-2 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow">
+            Adoção
+          </TabsTrigger>
+          <TabsTrigger value="temporary" className="rounded-full px-4 py-2 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow">
+            Lar Temporário
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {activeView === 'adoption' ? (
+        <AdoptionApplicationsPanel appUser={appUser} applications={applications} applicationsLoading={applicationsLoading} />
+      ) : (
+        <FosterApplicationsPanel appUser={appUser} applications={fosterApplications} applicationsLoading={fosterApplicationsLoading} />
+      )}
+    </div>
+  );
+}
+
 const userFormSchema = z.object({
   displayName: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres.'),
   email: z.string().email('Email inválido.'),
-  role: z.enum(['user', 'shelterAdmin', 'operator']),
+  role: z.enum(['user', 'operator']),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres.').optional(),
   photoURL: z.string().url('URL inválida.').or(z.literal('')).optional(),
 });
@@ -1015,7 +1460,6 @@ function UsersTab() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="user">Usuário</SelectItem>
-                                            <SelectItem value="shelterAdmin">Admin (Abrigo)</SelectItem>
                                             <SelectItem value="operator">Operador</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -1099,7 +1543,6 @@ function UsersTab() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="user">Usuário</SelectItem>
-                          <SelectItem value="shelterAdmin">Admin (Abrigo)</SelectItem>
                           <SelectItem value="operator">Operador</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1429,39 +1872,75 @@ export default function AdminPage() {
       return;
     }
     
-    if (!appUser || (appUser.role !== 'operator' && appUser.role !== 'shelterAdmin')) {
+    if (!appUser || appUser.role !== 'operator') {
       setAuthStatus('unauthorized');
       return;
     }
 
-    if (user && appUser && (appUser.role === 'operator' || appUser.role === 'shelterAdmin')) {
-      setAuthStatus('authorized');
-    }
+    setAuthStatus('authorized');
   }, [user, userLoading, appUser, appUserLoading, router]);
 
   const animalsQuery = useMemo(() => {
-    if (!firestore || !appUser) return null;
-    const animalsCollection = collection(firestore, 'animals') as CollectionReference<Animal>;
-    return appUser.role === 'operator'
-      ? animalsCollection
-      : query(animalsCollection, where('createdBy', '==', appUser.uid));
-  }, [firestore, appUser]);
+    if (!firestore || authStatus !== 'authorized') return null;
+    return collection(firestore, 'animals') as CollectionReference<Animal>;
+  }, [firestore, authStatus]);
   const { data: animals, loading: animalsLoading } = useCollection<Animal>(animalsQuery);
 
+  const temporaryAnimalsQuery = useMemo(() => {
+    if (!firestore || authStatus !== 'authorized') return null;
+    return collection(firestore, 'temporaryAnimals') as CollectionReference<TemporaryAnimal>;
+  }, [firestore, authStatus]);
+  const { data: temporaryAnimals, loading: temporaryAnimalsLoading } = useCollection<TemporaryAnimal>(temporaryAnimalsQuery);
+
   const applicationsQuery = useMemo(() => {
-    if (!firestore || !appUser) return null;
-    const applicationsRef = collection(firestore, 'adoptionApplications') as CollectionReference<AdoptionApplication>;
-    return appUser.role === 'operator'
-      ? applicationsRef
-      : query(applicationsRef, where('shelterAdminId', '==', appUser.uid));
-  }, [firestore, appUser]);
+    if (!firestore || authStatus !== 'authorized') return null;
+    return collection(firestore, 'adoptionApplications') as CollectionReference<AdoptionApplication>;
+  }, [firestore, authStatus]);
   const { data: applications, loading: applicationsLoading } = useCollection<AdoptionApplication>(applicationsQuery);
 
+  const fosterApplicationsQuery = useMemo(() => {
+    if (!firestore || authStatus !== 'authorized') return null;
+    return collection(firestore, 'fosterApplications') as CollectionReference<FosterApplication>;
+  }, [firestore, authStatus]);
+  const { data: fosterApplications, loading: fosterApplicationsLoading } = useCollection<FosterApplication>(fosterApplicationsQuery);
+
   const sheltersQuery = useMemo(() => {
-    if (!firestore || !appUser || appUser.role !== 'operator') return null;
+    if (!firestore || authStatus !== 'authorized') return null;
     return collection(firestore, 'shelters') as CollectionReference<Shelter>;
-  }, [firestore, appUser]);
+  }, [firestore, authStatus]);
   const { data: shelters, loading: sheltersLoading } = useCollection<Shelter>(sheltersQuery);
+
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<AdminTabValue>('animals');
+  const availableTabs = useMemo<AdminTabValue[]>(
+    () => (authStatus === 'authorized'
+      ? ['animals', 'temporary', 'applications', 'shelters', 'users', 'settings']
+      : ['animals', 'applications']),
+    [authStatus]
+  );
+
+  useEffect(() => {
+    const tabParam = searchParams?.get('tab');
+    if (tabParam && availableTabs.includes(tabParam as AdminTabValue)) {
+      setActiveTab(tabParam as AdminTabValue);
+    } else {
+      setActiveTab(availableTabs[0]);
+    }
+  }, [searchParams, availableTabs]);
+
+  const handleTabChange = (value: string) => {
+    if (!availableTabs.includes(value as AdminTabValue)) return;
+    const nextValue = value as AdminTabValue;
+    setActiveTab(nextValue);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    if (nextValue === availableTabs[0]) {
+      params.delete('tab');
+    } else {
+      params.set('tab', nextValue);
+    }
+    const query = params.toString();
+    router.replace(`/admin${query ? `?${query}` : ''}`, { scroll: false });
+  };
 
   
   if (authStatus === 'verifying') {
@@ -1497,9 +1976,9 @@ export default function AdminPage() {
 
   // Only render the dashboard if authorized
   return (
-    <div className="container mx-auto py-12 px-4">
-       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold font-headline">Painel de Administração</h1>
+    <div className="container mx-auto py-6 md:py-12 px-3 md:px-4">
+       <div className="flex justify-between items-center mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold font-headline">Painel de Administração</h1>
       </div>
       {appUser && (
         <DashboardOverview
@@ -1508,28 +1987,37 @@ export default function AdminPage() {
           animalsLoading={animalsLoading}
           applications={applications}
           applicationsLoading={applicationsLoading}
+          temporaryAnimals={temporaryAnimals}
+          temporaryAnimalsLoading={temporaryAnimalsLoading}
+          fosterApplications={fosterApplications}
+          fosterApplicationsLoading={fosterApplicationsLoading}
           shelters={shelters}
           sheltersLoading={sheltersLoading}
         />
       )}
-      <Tabs defaultValue="animals" className="w-full">
-        <TabsList className="admin-tabs-nav mb-8 flex w-full flex-wrap justify-center gap-3 bg-transparent p-0">
-          <TabsTrigger value="animals" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="admin-tabs-nav mb-8 grid w-full grid-cols-2 gap-2 bg-transparent p-0 md:flex md:flex-wrap md:justify-center md:gap-3 h-auto">
+          <TabsTrigger value="animals" className="flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-xs md:text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
             <Bone className="h-4 w-4" /> Animais
           </TabsTrigger>
-          <TabsTrigger value="applications" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+          {authStatus === 'authorized' && (
+            <TabsTrigger value="temporary" className="flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-xs md:text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+              <HandHeart className="h-4 w-4" /> <span className="hidden sm:inline">Lar Temporário</span><span className="sm:hidden">Temporário</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="applications" className="flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-xs md:text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
             <Inbox className="h-4 w-4" /> Pedidos
           </TabsTrigger>
-          {appUser?.role === 'operator' && (
+          {authStatus === 'authorized' && (
             <>
-              <TabsTrigger value="shelters" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+              <TabsTrigger value="shelters" className="flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-xs md:text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
                 <Home className="h-4 w-4" /> Abrigos
               </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+              <TabsTrigger value="users" className="flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-xs md:text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
                 <Users className="h-4 w-4" /> Usuários
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2 rounded-full border border-transparent px-4 py-2 text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
-                <Settings className="h-4 w-4" /> Configurações
+              <TabsTrigger value="settings" className="flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-xs md:text-sm font-semibold uppercase tracking-wide data-[state=active]:border-primary data-[state=active]:bg-primary/10">
+                <Settings className="h-4 w-4" /> Config
               </TabsTrigger>
             </>
           )}
@@ -1539,10 +2027,23 @@ export default function AdminPage() {
           <TabsContent value="animals">
             {appUser && <AnimalsTab appUser={appUser} animals={animals ?? []} animalsLoading={animalsLoading} />}
           </TabsContent>
+          {authStatus === 'authorized' && (
+            <TabsContent value="temporary">
+              <TemporaryAnimalsTab animals={temporaryAnimals ?? []} animalsLoading={temporaryAnimalsLoading} />
+            </TabsContent>
+          )}
           <TabsContent value="applications">
-            {appUser && <ApplicationsTab appUser={appUser} applications={applications ?? []} applicationsLoading={applicationsLoading} />}
+            {appUser && (
+              <ApplicationsTab
+                appUser={appUser}
+                applications={applications ?? []}
+                applicationsLoading={applicationsLoading}
+                fosterApplications={fosterApplications ?? []}
+                fosterApplicationsLoading={fosterApplicationsLoading}
+              />
+            )}
           </TabsContent>
-          {appUser?.role === 'operator' && (
+          {authStatus === 'authorized' && (
             <>
               <TabsContent value="shelters">
                 <SheltersTab shelters={shelters ?? []} sheltersLoading={sheltersLoading} />

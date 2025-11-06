@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import type { Animal } from '@/lib/types';
+import { usePathname } from 'next/navigation';
+import type { Animal, TemporaryAnimal } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,10 +13,14 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface AnimalCardProps {
-  animal: Animal;
+  animal: Animal | TemporaryAnimal;
 }
 
 export function AnimalCard({ animal }: AnimalCardProps) {
+  const pathname = usePathname();
+  const isTemporary = pathname?.includes('/temporary');
+  const basePath = isTemporary ? '/temporary' : '/adopt';
+  
   const image = animal.photos[0];
   const { isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(animal.id || '');
@@ -84,7 +89,7 @@ export function AnimalCard({ animal }: AnimalCardProps) {
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Button asChild className="w-full">
-          <Link href={`/adopt/${animal.id}`}>
+          <Link href={`${basePath}/${animal.id}`}>
             Conhecer {animal.name}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>

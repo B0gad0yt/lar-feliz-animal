@@ -1,13 +1,27 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { PawPrint, Heart, BookOpen, Users, Sparkles, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { PawPrint, Heart, BookOpen, Users, Sparkles, ShieldCheck, HandHeart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { StaggerContainer } from '@/components/animations/stagger-container';
 import { Reveal } from '@/components/animations/reveal';
+import { SupportModal } from '@/components/support-modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Check } from 'lucide-react';
 
 export default function Home() {
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-dog-1');
   const highlights = [
     {
@@ -75,8 +89,14 @@ export default function Home() {
               <Button asChild size="lg" className="font-bold text-lg py-6 px-8">
                 <Link href="/adopt">Adote Agora</Link>
               </Button>
-              <Button asChild size="lg" variant="secondary" className="font-semibold text-lg py-6 px-8">
-                <Link href="/education">Conheça o Processo</Link>
+              <Button 
+                size="lg" 
+                variant="secondary" 
+                className="font-semibold text-lg py-6 px-8"
+                onClick={() => setShowSupportModal(true)}
+              >
+                <HandHeart className="mr-2 h-5 w-5" />
+                Quer nos apoiar?
               </Button>
             </Reveal>
             <Reveal as="p" delay={0.25} className="text-sm md:text-base text-white/80">
@@ -158,6 +178,49 @@ export default function Home() {
           </Reveal>
         </StaggerContainer>
       </section>
+
+      {/* Support Modal */}
+      <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <HandHeart className="h-10 w-10 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-2xl text-center font-headline">
+              Quer nos apoiar?
+            </DialogTitle>
+            <div className="text-base text-center pt-4 space-y-4">
+              <p className="leading-relaxed">
+                <strong className="text-foreground">O que é o Lar Temporário?</strong>
+              </p>
+              <p className="leading-relaxed">
+                A pessoa apenas acolheria o animal, para que ele se mantesse seguro até encontrar um lar definitivo.
+              </p>
+              <p className="leading-relaxed">
+                Quando você se oferece como lar temporário, <strong className="text-foreground">não tem gasto algum</strong>. Nós enviamos ração, medicamentos e arcamos com veterinário.
+              </p>
+              <p className="leading-relaxed">
+                Você apenas acolhe o animalzinho para que ele possa achar um lar definitivo, criando uma <strong className="text-foreground">rede de apoio</strong> essencial para salvar vidas!
+              </p>
+            </div>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center gap-3">
+            <Button variant="outline" onClick={() => setShowSupportModal(false)}>
+              Fechar
+            </Button>
+            <Button asChild size="lg">
+              <Link href="/temporary" onClick={() => setShowSupportModal(false)}>
+                <HandHeart className="mr-2 h-5 w-5" />
+                Ver Animais Temporários
+              </Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <SupportModal />
     </div>
   );
 }

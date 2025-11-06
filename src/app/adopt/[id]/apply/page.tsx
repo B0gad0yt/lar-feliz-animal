@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
@@ -40,7 +41,8 @@ const applicationSchema = z.object({
   }),
 });
 
-export default function AdoptionApplicationPage({ params }: { params: { id: string } }) {
+export default function AdoptionApplicationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading: userLoading } = useUser();
@@ -56,7 +58,7 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
   const hcaptchaContainer = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<number | null>(null);
 
-  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', params.id) as DocumentReference<Animal>) : null), [firestore, params.id]);
+  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', id) as DocumentReference<Animal>) : null), [firestore, id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
   const form = useForm<z.infer<typeof applicationSchema>>({
@@ -267,7 +269,6 @@ export default function AdoptionApplicationPage({ params }: { params: { id: stri
         animalName: animal.name,
         animalPhoto: animal.photos?.[0] ?? null,
         shelterId: animal.shelterId,
-        shelterAdminId: animal.createdBy ?? '',
         applicantId: user.uid,
         fullName: values.fullName,
         email: values.email,

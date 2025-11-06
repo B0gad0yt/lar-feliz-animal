@@ -11,10 +11,6 @@ service cloud.firestore {
       return userHasRole('operator');
     }
 
-    function isShelterAdmin() {
-      return userHasRole('shelterAdmin');
-    }
-
     // Regras para a coleção 'users'
     match /users/{userId} {
       allow read: if true;
@@ -26,20 +22,27 @@ service cloud.firestore {
     match /animals/{animalId} {
       allow read: if true;
       allow create: if request.auth != null &&
-        (isOperator() || isShelterAdmin()) &&
+        isOperator() &&
         request.resource.data.createdBy == request.auth.uid;
-      allow update: if request.auth != null &&
-        (isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid));
-      allow delete: if request.auth != null &&
-        (isOperator() || (isShelterAdmin() && resource.data.createdBy == request.auth.uid));
+      allow update: if request.auth != null && isOperator();
+      allow delete: if request.auth != null && isOperator();
+    }
+
+    // Regras para a coleção 'temporaryAnimals'
+    match /temporaryAnimals/{animalId} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        isOperator() &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if request.auth != null && isOperator();
+      allow delete: if request.auth != null && isOperator();
     }
 
     // Regras para pedidos de adoção
     match /adoptionApplications/{applicationId} {
       allow read: if request.auth != null && (
         request.auth.uid == resource.data.applicantId ||
-        isOperator() ||
-        (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid)
+        isOperator()
       );
 
       allow create: if request.auth != null &&
@@ -47,10 +50,9 @@ service cloud.firestore {
         request.resource.data.status == 'pending';
 
       allow update: if request.auth != null &&
-        (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid)) &&
+        isOperator() &&
         request.resource.data.animalId == resource.data.animalId &&
         request.resource.data.applicantId == resource.data.applicantId &&
-        request.resource.data.shelterAdminId == resource.data.shelterAdminId &&
         request.resource.data.status in ['pending', 'accepted', 'adopted'] &&
         (
           // allow update only if the verification token remains the same (hcaptchaToken),
@@ -63,8 +65,35 @@ service cloud.firestore {
           )
         );
 
-      allow delete: if request.auth != null &&
-        (isOperator() || (isShelterAdmin() && resource.data.shelterAdminId == request.auth.uid));
+      allow delete: if request.auth != null && isOperator();
+    }
+
+    // Regras para pedidos de lar temporário
+    match /fosterApplications/{applicationId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.applicantId ||
+        isOperator()
+      );
+
+      allow create: if request.auth != null &&
+        request.resource.data.applicantId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+
+      allow update: if request.auth != null &&
+        isOperator() &&
+        request.resource.data.animalId == resource.data.animalId &&
+        request.resource.data.applicantId == resource.data.applicantId &&
+        request.resource.data.status in ['pending', 'approved', 'completed'] &&
+        (
+          (
+            resource.data.keys().hasAny(['hcaptchaToken']) && request.resource.data.keys().hasAny(['hcaptchaToken']) && request.resource.data.hcaptchaToken == resource.data.hcaptchaToken
+          ) ||
+          (
+            !resource.data.keys().hasAny(['hcaptchaToken']) && !request.resource.data.keys().hasAny(['hcaptchaToken'])
+          )
+        );
+
+      allow delete: if request.auth != null && isOperator();
     }
     
     // Regras para a coleção 'shelters'

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { use, useEffect, useMemo, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Trash, ArrowLeft, Upload, X } from 'lucide-react';
-import type { Animal, User as AppUser } from '@/lib/types';
+import type { Animal } from '@/lib/types';
 
 
 const animalSchema = z.object({
@@ -41,20 +41,19 @@ const animalSchema = z.object({
 });
 
 
-export default function EditAnimalPage({ params }: { params: { id: string } }) {
+export default function EditAnimalPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode'); // 'temporary' ou null
+  const isTemporary = mode === 'temporary';
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const userDocRef = useMemo(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid) as DocumentReference<AppUser>;
-  }, [firestore, user]);
-  const { data: appUser, loading: appUserLoading } = useDoc<AppUser>(userDocRef);
-  
-  const animalRef = useMemo(() => (firestore ? (doc(firestore, 'animals', params.id) as DocumentReference<Animal>) : null), [firestore, params.id]);
+  const collection = isTemporary ? 'temporaryAnimals' : 'animals';
+  const animalRef = useMemo(() => (firestore ? (doc(firestore, collection, id) as DocumentReference<Animal>) : null), [firestore, collection, id]);
   const { data: animal, loading: animalLoading } = useDoc<Animal>(animalRef);
 
   const form = useForm<z.infer<typeof animalSchema>>({
@@ -87,13 +86,11 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (animal) {
-      const defaultValues = {
+      form.reset({
         ...animal,
-        species: appUser?.role === 'shelterAdmin' ? 'Cachorro' : animal.species,
-      };
-      form.reset(defaultValues);
+      });
     }
-  }, [animal, appUser, form]);
+  }, [animal, form]);
 
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,7 +148,7 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
     });
   };
   
-  if (userLoading || animalLoading || appUserLoading) {
+  if (userLoading || animalLoading) {
     return <div className="container mx-auto text-center py-12">Carregando...</div>;
   }
   
@@ -161,7 +158,17 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
   }
   
   if (!animal && !animalLoading) {
-      return <div className="container mx-auto text-center py-12">Animal não encontrado.</div>;
+      return (
+        <div className="container mx-auto text-center py-12">
+          <p className="text-lg mb-4">Animal não encontrado.</p>
+          <p className="text-sm text-muted-foreground">
+            Buscando na coleção: <code className="bg-muted px-2 py-1 rounded">{collection}</code>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            ID: <code className="bg-muted px-2 py-1 rounded">{id}</code>
+          </p>
+        </div>
+      );
   }
 
 
@@ -175,7 +182,9 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
       </div>
       <Card className="bg-card/70 backdrop-blur-sm border-0 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl md:text-4xl font-headline">Editar Animal</CardTitle>
+          <CardTitle className="text-3xl md:text-4xl font-headline">
+            Editar Animal{isTemporary ? ' (Lar Temporário)' : ''}
+          </CardTitle>
           <CardDescription>
             Atualize as informações de <span className="font-bold text-primary">{form.getValues('name')}</span>.
           </CardDescription>
@@ -200,7 +209,6 @@ export default function EditAnimalPage({ params }: { params: { id: string } }) {
                       <Select 
                         onValueChange={field.onChange} 
                         value={field.value}
-                        disabled={appUser?.role === 'shelterAdmin'}
                       >
                         <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
                         <SelectContent>

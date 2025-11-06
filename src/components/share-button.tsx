@@ -27,7 +27,7 @@ export function ShareButton({ title, description, url, imageUrl }: ShareButtonPr
   };
 
   const handleNativeShare = async () => {
-    if (navigator.share) {
+    if (typeof navigator.share === 'function') {
       try {
         await navigator.share(shareData);
       } catch (err) {
@@ -70,7 +70,7 @@ export function ShareButton({ title, description, url, imageUrl }: ShareButtonPr
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        {navigator.share && (
+        {typeof navigator.share === 'function' && (
           <DropdownMenuItem onClick={handleNativeShare}>
             <Share2 className="mr-2 h-4 w-4" />
             Compartilhar...

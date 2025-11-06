@@ -20,7 +20,7 @@ Uma plataforma moderna e completa para conectar pessoas com animais disponíveis
 
 ### 🏢 Para Abrigos/ONGs
 - **Painel Administrativo**: Gerencie animais, abrigos e candidaturas
-- **Sistema de Usuários**: Controle de acesso com diferentes níveis (operator, shelterAdmin)
+- **Sistema de Usuários**: Controle de acesso com diferentes níveis (operator)
 - **Notificações**: Acompanhe novas candidaturas em tempo real
 
 ### 🚀 Recursos Técnicos

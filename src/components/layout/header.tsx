@@ -33,6 +33,7 @@ import {
 const navItems = [
   { href: '/', label: 'Início' },
   { href: '/adopt', label: 'Adotar' },
+  { href: '/temporary', label: 'Lar Temporário' },
   { href: '/matcher', label: 'Encontrar Match' },
   { href: '/education', label: 'Educação' },
   { href: '/shelters', label: 'Abrigos' },
@@ -53,7 +54,7 @@ export function Header() {
   const configRef = useMemo(() => (firestore ? (doc(firestore, 'config', 'site') as DocumentReference<SiteConfig>) : null), [firestore]);
   const { data: siteConfig } = useDoc<SiteConfig>(configRef);
   
-  const isAdmin = appUser?.role === 'operator' || appUser?.role === 'shelterAdmin';
+  const isAdmin = appUser?.role === 'operator';
 
   const handleSignOut = async () => {
     try {
@@ -144,7 +145,7 @@ export function Header() {
     }
 
     return (
-        <div className="hidden md:flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
             <Button variant="ghost" asChild>
                 <Link href="/login">Login</Link>
             </Button>
@@ -159,11 +160,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/90 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <div className="mr-4 flex items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <Logo className="h-8 w-8 text-primary" />
-            <span className="font-bold font-headline text-xl sm:inline-block">
+      <div className="flex h-16 items-center px-2 md:px-6 max-w-full">
+        <div className="mr-2 md:mr-4 flex items-center">
+          <Link href="/" className="flex items-center space-x-1.5 md:space-x-2">
+            <Logo width={32} height={32} className="md:w-9 md:h-9" />
+            <span className="font-bold font-headline text-base md:text-xl">
                 {siteConfig?.title || 'Lar Feliz Animal'}
             </span>
           </Link>
@@ -173,13 +174,13 @@ export function Header() {
             <NavLink key={item.href} {...item} />
           ))}
         </nav>
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        <div className="ml-auto flex items-center justify-end space-x-0.5 md:space-x-2">
           <ThemeToggle />
           <UserNav />
           <Sheet open={isSheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" className="md:hidden px-2">
-                <Menu className="h-6 w-6" />
+              <Button variant="ghost" className="md:hidden px-1.5">
+                <Menu className="h-5 w-5" />
                 <span className="sr-only">Abrir menu</span>
               </Button>
             </SheetTrigger>
@@ -187,8 +188,8 @@ export function Header() {
                 <SheetTitle className="sr-only">Menu Principal</SheetTitle>
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between p-4 border-b">
-                   <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>
-                      <Logo className="h-8 w-8 text-primary" />
+             <Link href="/" className="flex items-center space-x-2" onClick={() => setSheetOpen(false)}>
+                      <Logo width={32} height={32} />
                       <span className="font-bold font-headline text-lg">{siteConfig?.title || 'Lar Feliz Animal'}</span>
                     </Link>
                 </div>

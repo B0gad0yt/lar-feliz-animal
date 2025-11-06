@@ -30,13 +30,13 @@ export function Footer() {
   const socialLinks = siteConfig?.socialLinks?.slice(0, 4) || [];
 
   return (
-    <footer className="w-full border-t bg-background/80 backdrop-blur-sm" data-animate="slide-up" data-animate-delay="0.2">
+    <footer className="w-full border-t bg-background/80 backdrop-blur-sm pt-15" data-animate="slide-up" data-animate-delay="0.2">
       <div className="container mx-auto py-12 px-4">
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8" stagger={0.15}>
           {/* Logo e descrição */}
           <Reveal as="section" className="col-span-1">
             <div className="flex items-center space-x-2 mb-4">
-              <Logo className="h-8 w-8 text-primary" />
+              <Logo width={36} height={36} />
               <span className="font-bold font-headline text-xl">{siteConfig?.title || 'Lar Feliz Animal'}</span>
             </div>
             <p className="text-sm text-muted-foreground">

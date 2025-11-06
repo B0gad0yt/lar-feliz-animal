@@ -88,7 +88,22 @@ export function HCaptchaChallenge({
   const renderCaptcha = useCallback(() => {
     if (typeof window === 'undefined') return;
     if (!scriptReady || !siteKey) return;
-    if (!containerRef.current || !window.hcaptcha) return;
+    if (!containerRef.current) return;
+    
+    // Aguardar até que window.hcaptcha esteja completamente carregado
+    if (!window.hcaptcha || typeof window.hcaptcha.render !== 'function') {
+      // Se o script está pronto mas hcaptcha ainda não está disponível, aguardar um pouco
+      const checkHcaptcha = setInterval(() => {
+        if (window.hcaptcha && typeof window.hcaptcha.render === 'function') {
+          clearInterval(checkHcaptcha);
+          renderCaptcha();
+        }
+      }, 100);
+      
+      // Limpar após 5 segundos para evitar loop infinito
+      setTimeout(() => clearInterval(checkHcaptcha), 5000);
+      return;
+    }
 
     try {
       widgetIdRef.current = window.hcaptcha.render(containerRef.current, {
@@ -109,7 +124,7 @@ export function HCaptchaChallenge({
     // previous client-side navigation), mark the script as ready so we can
     // render the widget immediately. This fixes the case where the Script
     // onLoad handler is not called because the script was already injected.
-    if (typeof window !== 'undefined' && (window as any).hcaptcha) {
+    if (typeof window !== 'undefined' && window.hcaptcha && typeof window.hcaptcha.render === 'function') {
       setScriptReady(true);
     }
 
@@ -157,8 +172,23 @@ export function HCaptchaChallenge({
   const scriptProps: ScriptProps = {
     id: 'hcaptcha-script',
     src: HCAPTCHA_SRC,
-    strategy: 'lazyOnload',
-    onLoad: () => setScriptReady(true),
+    strategy: 'afterInteractive',
+    onReady: () => {
+      // Aguardar um pouco para garantir que a API está totalmente inicializada
+      setTimeout(() => {
+        if (window.hcaptcha && typeof window.hcaptcha.render === 'function') {
+          setScriptReady(true);
+        }
+      }, 100);
+    },
+    onLoad: () => {
+      // Também tentar no onLoad
+      setTimeout(() => {
+        if (window.hcaptcha && typeof window.hcaptcha.render === 'function') {
+          setScriptReady(true);
+        }
+      }, 100);
+    },
     onError: (error) => {
       console.error('Erro ao carregar script do hCaptcha', error);
       setSiteKeyError('O script do hCaptcha não pôde ser carregado.');
@@ -179,7 +209,7 @@ export function HCaptchaChallenge({
         <p className="text-sm font-semibold text-foreground">{label}</p>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <div className="rounded-md border border-border/60 bg-background/80 p-3 min-h-[110px] flex items-center justify-center">
+      <div className="rounded-md border border-border/60 bg-background/80 p-3 min-h-[78px] flex items-center justify-center">
         {canRenderCaptcha ? (
           <div ref={assignContainerRef} className="w-full flex justify-center" />
         ) : isCaptchaLoading ? (

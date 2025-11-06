@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -25,6 +25,12 @@ export function CollapsibleSection({
   forceMount = false,
 }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(!defaultCollapsed);
+  const [mounted, setMounted] = useState(false);
+
+  // Delay hydrating the animated wrapper until after mount to avoid SSR mismatch.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const toggle = () => setOpen(o => !o);
 
   return (
@@ -60,21 +66,29 @@ export function CollapsibleSection({
           </Button>
         )}
       </CardHeader>
-      <AnimatePresence initial={false}>
-        {(open || forceMount) && (
-          <motion.div
-            key="content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <CardContent className="pt-0">
-              {children}
-            </CardContent>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {mounted ? (
+        <AnimatePresence initial={false}>
+          {(open || forceMount) && (
+            <motion.div
+              key="content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <CardContent className="pt-0">
+                {children}
+              </CardContent>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      ) : (
+        (open || forceMount) && (
+          <CardContent className="pt-0">
+            {children}
+          </CardContent>
+        )
+      )}
     </Card>
   );
 }

@@ -15,6 +15,10 @@ export type Animal = {
   createdBy?: string; // UID of the user who created the animal
   createdAt?: any;
   updatedAt?: any;
+  // Foster to adoption migration fields
+  movedFromTemporary?: boolean;
+  originalTemporaryId?: string;
+  movedAt?: any;
 };
 
 export type Shelter = {
@@ -33,7 +37,7 @@ export type User = {
     email: string | null;
     displayName: string | null;
     photoURL: string | null;
-    role: 'operator' | 'shelterAdmin' | 'user';
+    role: 'operator' | 'user';
 };
 
 export type SocialLink = {
@@ -53,7 +57,6 @@ export type AdoptionApplication = {
   animalName: string;
   animalPhoto?: string | null;
   shelterId: string;
-  shelterAdminId: string;
   applicantId: string;
   fullName: string;
   email: string;
@@ -68,4 +71,13 @@ export type AdoptionApplication = {
   createdAt?: any;
   handledBy?: string;
   handledAt?: any;
+};
+
+export type TemporaryAnimal = Animal;
+
+export type FosterApplication = Omit<AdoptionApplication, 'status' | 'reason'> & {
+  status: 'pending' | 'approved' | 'completed';
+  availability?: string;
+  experience?: string;
+  animalMovedToAdoption?: boolean;
 };

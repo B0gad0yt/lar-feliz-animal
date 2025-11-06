@@ -7,7 +7,7 @@ const createUserSchema = z.object({
   displayName: z.string().min(3, 'Nome precisa de pelo menos 3 caracteres.'),
   email: z.string().email('Informe um email válido.'),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres.'),
-  role: z.enum(['user', 'shelterAdmin', 'operator']),
+  role: z.enum(['user', 'operator']),
   photoURL: z
     .string()
     .url('Informe uma URL válida.')

@@ -186,29 +186,4 @@ body {
       object-position: 45% center !important;
     }
   }
-
-  /* Marketing panel margin adjustments */
-@media (max-width: 767.78px) {
-    .admin-tabs-nav {
-        margin-bottom:60px!important
-    }
-}
-
-@media (max-width: 426.68px) {
-    .admin-tabs-nav {
-        margin-bottom:110px!important
-    }
-}
-
-@media (max-width: 303.33px) {
-    .admin-tabs-nav {
-        margin-bottom:150px!important
-    }
-}
-
-@media (max-width: 296.67px) {
-    .admin-tabs-nav {
-        margin-bottom:200px!important
-    }
-}
 }
