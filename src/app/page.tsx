@@ -10,6 +10,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { StaggerContainer } from '@/components/animations/stagger-container';
 import { Reveal } from '@/components/animations/reveal';
 import { SupportModal } from '@/components/support-modal';
+import { useSupportModal } from '@/hooks/use-support-modal';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import { Check } from 'lucide-react';
 
 export default function Home() {
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const { hasReadModal, markAsRead } = useSupportModal();
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-dog-1');
   const highlights = [
     {
@@ -93,10 +95,26 @@ export default function Home() {
                 size="lg" 
                 variant="secondary" 
                 className="font-semibold text-lg py-6 px-8"
-                onClick={() => setShowSupportModal(true)}
+                asChild={hasReadModal}
+                onClick={() => {
+                  if (hasReadModal) {
+                    // Se já leu, vai direto para a página
+                    return;
+                  }
+                  setShowSupportModal(true);
+                }}
               >
-                <HandHeart className="mr-2 h-5 w-5" />
-                Quer nos apoiar?
+                {hasReadModal ? (
+                  <Link href="/temporary">
+                    <HandHeart className="mr-2 h-5 w-5" />
+                    Quer nos apoiar?
+                  </Link>
+                ) : (
+                  <>
+                    <HandHeart className="mr-2 h-5 w-5" />
+                    Quer nos apoiar?
+                  </>
+                )}
               </Button>
             </Reveal>
             <Reveal as="p" delay={0.25} className="text-sm md:text-base text-white/80">
@@ -180,7 +198,12 @@ export default function Home() {
       </section>
 
       {/* Support Modal */}
-      <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+      <Dialog open={showSupportModal} onOpenChange={(open) => {
+        if (!open) {
+          markAsRead();
+        }
+        setShowSupportModal(open);
+      }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <div className="flex items-center justify-center mb-4">
@@ -207,11 +230,14 @@ export default function Home() {
             </div>
           </DialogHeader>
           <DialogFooter className="sm:justify-center gap-3">
-            <Button variant="outline" onClick={() => setShowSupportModal(false)}>
+            <Button variant="outline" onClick={() => {
+              markAsRead();
+              setShowSupportModal(false);
+            }}>
               Fechar
             </Button>
-            <Button asChild size="lg">
-              <Link href="/temporary" onClick={() => setShowSupportModal(false)}>
+            <Button asChild size="lg" onClick={() => markAsRead()}>
+              <Link href="/temporary">
                 <HandHeart className="mr-2 h-5 w-5" />
                 Ver Animais Temporários
               </Link>

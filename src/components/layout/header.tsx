@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu, User, LogOut, Shield, UserCog, Heart } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, User, LogOut, Shield, UserCog, Heart, HandHeart } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
+import { useSupportModal } from '@/hooks/use-support-modal';
 
 import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 
 const navItems = [
@@ -42,7 +50,10 @@ const navItems = [
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSheetOpen, setSheetOpen] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const { hasReadModal, markAsRead } = useSupportModal();
   const { user, loading } = useUser();
   const { favorites } = useFavorites();
   const firestore = useFirestore();
@@ -67,7 +78,18 @@ export function Header() {
   const NavLink = ({ href, label, icon: Icon, className }: { href: string; label: string; icon?: React.ComponentType<any>; className?: string }) => {
     const isActive = pathname === href;
     const isFavorites = href === '/favorites';
+    const isTemporary = href === '/temporary';
     const favCount = favorites.length;
+    
+    const handleClick = (e: React.MouseEvent) => {
+      if (isTemporary && !hasReadModal) {
+        e.preventDefault();
+        setShowSupportModal(true);
+        setSheetOpen(false);
+        return;
+      }
+      setSheetOpen(false);
+    };
     
     return (
       <Link
@@ -77,7 +99,7 @@ export function Header() {
           isActive && 'text-foreground font-semibold',
           className
         )}
-        onClick={() => setSheetOpen(false)}
+        onClick={handleClick}
       >
         {Icon && <Icon className="h-4 w-4" />}
         {label}
@@ -228,6 +250,58 @@ export function Header() {
           </Sheet>
         </div>
       </div>
+
+      {/* Support Modal */}
+      <Dialog open={showSupportModal} onOpenChange={(open) => {
+        if (!open) {
+          markAsRead();
+        }
+        setShowSupportModal(open);
+      }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <HandHeart className="h-10 w-10 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-2xl text-center font-headline">
+              Quer nos apoiar?
+            </DialogTitle>
+            <div className="text-base text-center pt-4 space-y-4">
+              <p className="leading-relaxed">
+                <strong className="text-foreground">O que é o Lar Temporário?</strong>
+              </p>
+              <p className="leading-relaxed">
+                A pessoa apenas acolheria o animal, para que ele se mantesse seguro até encontrar um lar definitivo.
+              </p>
+              <p className="leading-relaxed">
+                Quando você se oferece como lar temporário, <strong className="text-foreground">não tem gasto algum</strong>. Nós enviamos ração, medicamentos e arcamos com veterinário.
+              </p>
+              <p className="leading-relaxed">
+                Você apenas acolhe o animalzinho para que ele possa achar um lar definitivo, criando uma <strong className="text-foreground">rede de apoio</strong> essencial para salvar vidas!
+              </p>
+            </div>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center gap-3">
+            <Button variant="outline" onClick={() => {
+              markAsRead();
+              setShowSupportModal(false);
+            }}>
+              Fechar
+            </Button>
+            <Button asChild size="lg" onClick={() => {
+              markAsRead();
+              setShowSupportModal(false);
+            }}>
+              <Link href="/temporary">
+                <HandHeart className="mr-2 h-5 w-5" />
+                Ver Animais Temporários
+              </Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

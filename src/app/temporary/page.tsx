@@ -73,6 +73,29 @@ export default function TemporaryAnimalsPage() {
           Ajude a salvar vidas acolhendo temporariamente um animalzinho.
         </Reveal>
       </header>
+
+      <Reveal as="section" delay={0.16} className="mb-12">
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="p-6 md:p-8">
+            <h2 className="text-2xl md:text-3xl font-semibold mb-4 flex items-center gap-2">
+              <HandHeart className="h-7 w-7 text-primary" />
+              O que é o Lar Temporário?
+            </h2>
+            <div className="space-y-4 text-base md:text-lg leading-relaxed">
+              <p>
+                A pessoa apenas acolheria o animal, para que ele se mantesse seguro até encontrar um lar definitivo.
+              </p>
+              <p>
+                Quando você se oferece como lar temporário, <strong>não tem gasto algum</strong>. Nós enviamos ração, medicamentos e arcamos com veterinário.
+              </p>
+              <p>
+                Você apenas acolhe o animalzinho para que ele possa achar um lar definitivo, criando uma rede de apoio essencial para salvar vidas!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </Reveal>
+
       <div className="flex flex-col md:flex-row gap-8">
         <aside className="w-full md:w-1/4 lg:w-1/5">
           <Reveal as="section" className="sticky top-24">
